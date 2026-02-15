@@ -90,6 +90,65 @@ async def list_narratives(
     )
 
 
+@router.get("/hackathons", response_model=NarrativeListResponse)
+async def list_hackathon_narratives(
+    is_active: bool | None = Query(None, description="Filter by active status"),
+    min_confidence: str | None = Query(None, description="Minimum confidence: high, medium, low"),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+):
+    """List narratives tagged with 'hackathon', sorted by velocity score."""
+    query = select(Narrative).where(Narrative.tags.contains(["hackathon"]))
+
+    # Filters
+    if is_active is not None:
+        query = query.where(Narrative.is_active == is_active)
+
+    if min_confidence:
+        confidence_levels = {"high": ["high"], "medium": ["high", "medium"], "low": ["high", "medium", "low"]}
+        allowed = confidence_levels.get(min_confidence, ["high", "medium", "low"])
+        query = query.where(Narrative.confidence.in_(allowed))
+
+    # Count total before pagination
+    count_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Sort and paginate
+    query = query.order_by(Narrative.velocity_score.desc(), Narrative.created_at.desc())
+    query = query.offset(offset).limit(limit)
+
+    result = await db.execute(query.options(selectinload(Narrative.ideas)))
+    narratives = result.scalars().all()
+
+    return NarrativeListResponse(
+        narratives=[
+            NarrativeResponse(
+                id=n.id,
+                title=n.title,
+                summary=n.summary,
+                confidence=n.confidence,
+                confidence_reasoning=n.confidence_reasoning,
+                is_active=n.is_active,
+                velocity_score=n.velocity_score,
+                rank=n.rank,
+                tags=n.tags or [],
+                key_evidence=n.key_evidence or [],
+                supporting_source_names=n.supporting_source_names or [],
+                idea_count=len(n.ideas) if n.ideas else 0,
+                created_at=n.created_at,
+                updated_at=n.updated_at,
+                last_detected_at=n.last_detected_at,
+            )
+            for n in narratives
+        ],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
 @router.get("/{narrative_id}", response_model=NarrativeDetailResponse)
 async def get_narrative(
     narrative_id: int,

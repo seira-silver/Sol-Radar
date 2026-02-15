@@ -1,0 +1,290 @@
+{
+  "narratives": {
+    "narratives": [
+      {
+        "id": 5,
+        "title": "Institutional RWA Tokenization Explosion",
+        "summary": "Solana's RWA ecosystem hit $1.66B ATH with launches of tokenized gold (Matrixdock XAUm), 200+ US stocks/ETFs (Ondo), full regulated funds suite (WisdomTree), and supply chain finance (Citi). Multiple sources confirm 64% MoM growth in regulated onchain assets to $10B. This shift brings TradFi liquidity and composability to Solana DeFi, enabling 24/7 global access previously locked in legacy markets.",
+        "confidence": "high",
+        "confidence_reasoning": "Converges across Solana News (10+ signals), Solana Homepage, Reddit r/solana, Solana Compass; official @solana amplification; multiple independent issuers (Ondo, WisdomTree, Matrixdock, Citi).",
+        "is_active": true,
+        "velocity_score": 5.1,
+        "rank": 1,
+        "tags": ["rwa", "defi", "institutional"],
+        "key_evidence": [
+          {
+            "evidence": "SPY, QQQ, NVDA, TSLA tokenized as DeFi assets enabling borrow, lend, leverage, yield on Solana",
+            "signal_id": 307,
+            "content_url": "https://www.reddit.com/r/solana/comments/1r29b4x/its_been_a_big_week_for_solana_here_are_8_big/",
+            "source_name": "Reddit r/solana",
+            "signal_title": "Tokenized Equities Live on Solana DeFi"
+          },
+          {
+            "evidence": "Matrixdock Expands XAUm to Solana, Enabling Institutional-Grade Tokenized Gold at Scale",
+            "signal_id": 152,
+            "content_url": "https://www.reddit.com/r/solana/comments/1r4oq0i/this_week_in_media_26213/",
+            "source_name": "Reddit r/solana",
+            "signal_title": "Matrixdock launches tokenized gold on Solana"
+          },
+          {
+            "evidence": "WisdomTree brings its full suite of regulated tokenized funds to Solana",
+            "signal_id": 258,
+            "content_url": "https://solana.com/news",
+            "source_name": "Solana News",
+            "signal_title": "Matrixdock Launches XAUm Tokenized Gold on Solana"
+          },
+          {
+            "evidence": "Solana's RWA ecosystem just hit a new ATH: $1.66B+ in tokenized value",
+            "signal_id": 30,
+            "content_url": "https://x.com/solana/status/2022947927413686542",
+            "source_name": "@solana",
+            "signal_title": "Solana RWA ecosystem hits new ATH"
+          }
+        ],
+        "supporting_source_names": [
+          "Reddit r/solana",
+          "Solana Compass",
+          "Solana Homepage",
+          "Solana News"
+        ],
+        "idea_count": 3,
+        "created_at": "2026-02-15T11:15:36.483217Z",
+        "updated_at": "2026-02-15T13:11:27.596779Z",
+        "last_detected_at": "2026-02-15T13:11:00.731057Z"
+      },
+      {
+        "id": 10,
+        "title": "Developer Tooling Arms Race for Latency & Reliability",
+        "summary": "Helius launches Gatekeeper (4.6x faster RPC), gTFA (3-10x speedup), LaserStream, Orb explorer; Raydium LaunchLab vs Pump.fun; bundler demand surges. Agave 3.1 + Alpenglow signal core infra push. Signals indicate convergence on performance as table stakes for HFT/MEV/memecoin trading.",
+        "confidence": "high",
+        "confidence_reasoning": "Heavy Helius Blog coverage (10+ signals) + Reddit dev tools demand (332,325,140); cross-source with Solana News upgrades.",
+        "is_active": true,
+        "velocity_score": 4.5,
+        "rank": 3,
+        "tags": ["infrastructure", "rpc", "developer-tooling", "performance"],
+        "key_evidence": [
+          {
+            "evidence": "Helius getTransactionsForAddress RPC with 3-10x speedup",
+            "signal_id": 140,
+            "content_url": "https://www.reddit.com/r/solana/comments/1r3rytx/fetching_transaction_history_on_solana_now_call/",
+            "source_name": "Reddit r/solana",
+            "signal_title": "Helius Launches getTransactionsForAddress RPC with 3-10x Speedup"
+          },
+          {
+            "evidence": "Gatekeeper reduces RPC latency 4.6x cold (27ms vs 123ms), 7.8x warm",
+            "signal_id": 197,
+            "content_url": "https://www.helius.dev/blog/introducing-gatekeeper",
+            "source_name": "Helius Blog",
+            "signal_title": "Helius launches Gatekeeper edge gateway for sub-ms latency"
+          },
+          {
+            "evidence": "Raydium LaunchLab as Pump.fun competitor",
+            "signal_id": 334,
+            "content_url": "https://www.reddit.com/r/solana/comments/1r5dvdd/took_me_4_rugs_to_figure_out_where_to_buy_meme/",
+            "source_name": "Reddit r/solana",
+            "signal_title": "Raydium LaunchLab as Pump.fun competitor"
+          },
+          {
+            "evidence": "Alpenglow slashes Solana latency to 150ms",
+            "signal_id": 306,
+            "content_url": "https://www.reddit.com/r/solana/comments/1r29b4x/its_been_a_big_week_for_solana_here_are_8_big/",
+            "source_name": "Reddit r/solana",
+            "signal_title": "Alpenglow Slashes Solana Latency to 150ms"
+          }
+        ],
+        "supporting_source_names": ["Helius Blog", "Reddit r/solana"],
+        "idea_count": 3,
+        "created_at": "2026-02-15T13:11:27.564835Z",
+        "updated_at": "2026-02-15T13:11:27.599200Z",
+        "last_detected_at": "2026-02-15T13:11:00.731057Z"
+      },
+      {
+        "id": 7,
+        "title": "Core Infrastructure Maturity & Validator Evolution",
+        "summary": "SFDP stake share fell to 5.9% with 121% growth in independent validators; SIMD upgrades (100M CUs, Alpenglow 150ms, revenue sharing) + Firedancer live signal maturing base layer. Helius tooling (Gatekeeper, LaserStream) addresses HFT needs. Cross-source dev signals show shift to production-grade infra.",
+        "confidence": "high",
+        "confidence_reasoning": "Heavy Solana News coverage (248-251, 240-246) + Helius (197,210) + Reddit/Syndica dev reports.",
+        "is_active": true,
+        "velocity_score": 4,
+        "rank": 3,
+        "tags": ["infrastructure", "validators", "performance", "developer"],
+        "key_evidence": [
+          {
+            "evidence": "SFDP's share of total staked SOL fell from 44.4% at launch to 5.9% by Epoch 881... non-SFDP stake grew by ~230%.",
+            "signal_id": 248,
+            "content_url": "https://solana.com/news/solana-foundation-delegation-program-case-study",
+            "source_name": "Solana News",
+            "signal_title": "SFDP Stake Share Declines to 5.9% Amid 230% Non-SFDP Stake Growth"
+          },
+          {
+            "evidence": "Alpenglow is a state-of-the-art consensus protocol that will bring 150ms confirmation times to Solana.",
+            "signal_id": 242,
+            "content_url": "https://solana.com/news/solana-network-upgrades",
+            "source_name": "Solana News",
+            "signal_title": "Alpenglow Consensus for 150ms Confirmations"
+          },
+          {
+            "evidence": "Gatekeeper achieves ~26 ms with new connection and ~0.5 ms with reused connection... targeting high-frequency trading and MEV workloads.",
+            "signal_id": 197,
+            "content_url": "https://www.helius.dev/blog/introducing-gatekeeper",
+            "source_name": "Helius Blog",
+            "signal_title": "Helius launches Gatekeeper edge gateway for sub-ms latency"
+          }
+        ],
+        "supporting_source_names": [
+          "Helius Blog",
+          "Reddit r/solana",
+          "Solana News"
+        ],
+        "idea_count": 2,
+        "created_at": "2026-02-15T11:15:36.629790Z",
+        "updated_at": "2026-02-15T11:15:36.674039Z",
+        "last_detected_at": "2026-02-15T11:15:06.641847Z"
+      },
+      {
+        "id": 8,
+        "title": "AI Agents & Natural Language Interfaces",
+        "summary": "Solflare Magic AI wallets, Solana Bench LLM benchmarks, OpenClaw payments via Lobster.cash, and agent hackathons signal shift to non-human economy on Solana. Foundation funding + Breakpoint demos show dev tooling maturation. Converges across News, Reddit, Compass.",
+        "confidence": "medium",
+        "confidence_reasoning": "Multiple mentions in Breakpoint (226), Reddit (121,153), Compass (43), but fewer onchain signals vs RWA.",
+        "is_active": true,
+        "velocity_score": 3.86,
+        "rank": 4,
+        "tags": ["ai", "agents", "wallets", "developer"],
+        "key_evidence": [
+          {
+            "evidence": "Solflare: Demoed Magic AI, a natural language interface where users type 'Swap my USDC for SOL if the price increases above $150.'",
+            "signal_id": 226,
+            "content_url": "https://solana.com/news/solana-breakpoint-2025",
+            "source_name": "Solana News",
+            "signal_title": "AI Agents and Natural Language Wallets"
+          },
+          {
+            "evidence": "Solana Foundation Launches Solana Bench for LLM Transaction Building... test LLMs' ability to build and execute complex Solana transactions.",
+            "signal_id": 215,
+            "content_url": "https://solana.com/news/solana-bench",
+            "source_name": "Solana News",
+            "signal_title": "Solana Foundation Launches Solana Bench for LLM Transaction Building"
+          },
+          {
+            "evidence": "lobster.cash... secure payment layer for over 1M deployed OpenClaw agents using cards and stablecoins on Solana.",
+            "signal_id": 121,
+            "content_url": "https://www.reddit.com/r/solana/comments/1r32sb6/crossmint_announced_httplobstercash_the_open/",
+            "source_name": "Reddit r/solana",
+            "signal_title": "Crossmint Launches Lobster.cash for OpenClaw Agent Payments on Solana"
+          }
+        ],
+        "supporting_source_names": [
+          "@metaplex",
+          "Reddit r/solana",
+          "Solana Compass",
+          "Solana News"
+        ],
+        "idea_count": 2,
+        "created_at": "2026-02-15T11:15:36.643705Z",
+        "updated_at": "2026-02-15T11:15:36.675022Z",
+        "last_detected_at": "2026-02-15T11:15:06.641847Z"
+      }
+    ],
+    "total": 11,
+    "limit": 10,
+    "offset": 0
+  },
+  "ideas": {
+    "ideas": [
+      {
+        "id": 25,
+        "narrative_id": 11,
+        "narrative_title": "Gaming & 'Dead' Category Revival via Hackathons",
+        "narrative_is_active": true,
+        "title": "Bear Market Game Studio Toolkit",
+        "description": "No-code toolkit for hackathon-style games with onchain leaderboards, tokenized rewards, and mobile-first templates using Solana Mobile primitives.",
+        "problem": "Games surging in bear (signal 323) but lack standardized tooling; Graveyard Hack bounties show demand.",
+        "solution": "Capitalize on counter-cyclical momentum; Solana Mobile Mtndao hack (signal 310) proves mobile focus.",
+        "why_solana": "Saga/Seeker diagnostics + low fees suit casual gaming; hackathons validate primitives.",
+        "scale_potential": "$200B mobile gaming TAM; viral via airdrops like Parallel.",
+        "market_signals": "Solana games bear market surge (signal 323); Graveyard Gaming track (signal 319).",
+        "supporting_signals": [
+          "Solana games surging in bear market",
+          "Solana Graveyard Hackathon Launch"
+        ],
+        "created_at": "2026-02-15T13:11:27.576346Z"
+      },
+      {
+        "id": 24,
+        "narrative_id": 10,
+        "narrative_title": "Developer Tooling Arms Race for Latency & Reliability",
+        "narrative_is_active": true,
+        "title": "Rent Reclaimer Automation Suite",
+        "description": "No-code dashboard automating SOL rent reclamation across wallets with community-voted UI/fee transparency improvements.",
+        "problem": "Community-driven iterations show grassroots demand (signals 332,148).",
+        "solution": "Build on Reddit feedback loops; state rent reduction (signal 195) amplifies value.",
+        "why_solana": "Rent mechanics unique to Solana; 90% cheaper post-reduction unlocks mass adoption.",
+        "scale_potential": "Billions in reclaimable SOL; viral via wallet integrations like Phantom.",
+        "market_signals": "Developer rebuilt based on Reddit feedback (signals 332,148).",
+        "supporting_signals": [
+          "Community-driven SOL rent reclaimer tool iteration",
+          "State Rent Reduction Initiative Begins"
+        ],
+        "created_at": "2026-02-15T13:11:27.568702Z"
+      },
+      {
+        "id": 23,
+        "narrative_id": 10,
+        "narrative_title": "Developer Tooling Arms Race for Latency & Reliability",
+        "narrative_is_active": true,
+        "title": "MEV Explorer & Simulator",
+        "description": "Real-time MEV dashboard using gTFA/LaserStream for bundle simulation, profitability analysis, and backtesting across Jito/Helius.",
+        "problem": "Traders lack visibility into landing rates/fees; Helius tools expose demand (signals 166,197).",
+        "solution": "Leverage new RPCs for accurate sims; Agave/Alpenglow upgrades boost precision.",
+        "why_solana": "MEV infra (Jito) + fastest RPCs (Helius Gatekeeper) enable real-time edge vs slower chains.",
+        "scale_potential": "MEV market $1B+ annually; network effects as more bots integrate.",
+        "market_signals": "Gatekeeper 7.8x speedup (signal 197); gTFA launch (signal 166).",
+        "supporting_signals": [
+          "New getTransactionsForAddress RPC Method",
+          "Helius launches Gatekeeper edge gateway"
+        ],
+        "created_at": "2026-02-15T13:11:27.568701Z"
+      },
+      {
+        "id": 22,
+        "narrative_id": 10,
+        "narrative_title": "Developer Tooling Arms Race for Latency & Reliability",
+        "narrative_is_active": true,
+        "title": "Bundler Marketplace",
+        "description": "Permissionless marketplace for pump.fun bundlers with reputation scoring, backtesting, and auto-switching based on landing rates.",
+        "problem": "Sniper bots beat launches; repeated Reddit demand for reputable bundlers (signals 325,139).",
+        "solution": "Post-LaunchLab competition + Helius Sender tools create perfect timing; aggregate best performers.",
+        "why_solana": "Memecoin frenzy + Jito bundles demand specialized tooling; low fees enable micro-payments for bundles.",
+        "scale_potential": "Pump.fun dominance = massive volume; comparable to HFT colocation services ($B market).",
+        "market_signals": "Bundler bot demand (signals 325,139); Raydium LaunchLab (signal 334).",
+        "supporting_signals": [
+          "Rising demand for bundler bots in pump.fun launches",
+          "Raydium LaunchLab as Pump.fun competitor"
+        ],
+        "created_at": "2026-02-15T13:11:27.568700Z"
+      },
+      {
+        "id": 21,
+        "narrative_id": 9,
+        "narrative_title": "Privacy Infrastructure Maturing with Hackathon Momentum",
+        "narrative_is_active": true,
+        "title": "ZK Privacy Wallet Shield",
+        "description": "Wallet add-on using Light Protocol ZK (200x cheaper than SPL) + CSPL for shielding DeFi positions from chain analysis.",
+        "problem": "Privacy primitives fragmented; hackathons show convergence (signals 326,223).",
+        "solution": "Consumer-facing layer atop maturing infra; Solflare Magic AI precedent for UX (signal 266).",
+        "why_solana": "ZK compression + rollups cheapest privacy; mobile stack aids consumer onboarding.",
+        "scale_potential": "Every wallet user needs privacy; comparable to Tornado Cash but compliant/onchain.",
+        "market_signals": "Light Token 200x cheaper ZK (signal 223); privacy hackathon 47 submissions (signal 326).",
+        "supporting_signals": [
+          "Privacy and Cheap State Primitives Emerge",
+          "Arcium Announces Confidential Token Standard CSPL"
+        ],
+        "created_at": "2026-02-15T13:11:27.561372Z"
+      }
+    ],
+    "total": 22,
+    "limit": 10,
+    "offset": 0
+  }
+}

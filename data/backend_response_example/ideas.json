@@ -1,0 +1,97 @@
+{
+  "ideas": [
+    {
+      "id": 25,
+      "narrative_id": 11,
+      "narrative_title": "Gaming & 'Dead' Category Revival via Hackathons",
+      "narrative_is_active": true,
+      "title": "Bear Market Game Studio Toolkit",
+      "description": "No-code toolkit for hackathon-style games with onchain leaderboards, tokenized rewards, and mobile-first templates using Solana Mobile primitives.",
+      "problem": "Games surging in bear (signal 323) but lack standardized tooling; Graveyard Hack bounties show demand.",
+      "solution": "Capitalize on counter-cyclical momentum; Solana Mobile Mtndao hack (signal 310) proves mobile focus.",
+      "why_solana": "Saga/Seeker diagnostics + low fees suit casual gaming; hackathons validate primitives.",
+      "scale_potential": "$200B mobile gaming TAM; viral via airdrops like Parallel.",
+      "market_signals": "Solana games bear market surge (signal 323); Graveyard Gaming track (signal 319).",
+      "supporting_signals": [
+        "Solana games surging in bear market",
+        "Solana Graveyard Hackathon Launch"
+      ],
+      "created_at": "2026-02-15T13:11:27.576346Z"
+    },
+    {
+      "id": 24,
+      "narrative_id": 10,
+      "narrative_title": "Developer Tooling Arms Race for Latency & Reliability",
+      "narrative_is_active": true,
+      "title": "Rent Reclaimer Automation Suite",
+      "description": "No-code dashboard automating SOL rent reclamation across wallets with community-voted UI/fee transparency improvements.",
+      "problem": "Community-driven iterations show grassroots demand (signals 332,148).",
+      "solution": "Build on Reddit feedback loops; state rent reduction (signal 195) amplifies value.",
+      "why_solana": "Rent mechanics unique to Solana; 90% cheaper post-reduction unlocks mass adoption.",
+      "scale_potential": "Billions in reclaimable SOL; viral via wallet integrations like Phantom.",
+      "market_signals": "Developer rebuilt based on Reddit feedback (signals 332,148).",
+      "supporting_signals": [
+        "Community-driven SOL rent reclaimer tool iteration",
+        "State Rent Reduction Initiative Begins"
+      ],
+      "created_at": "2026-02-15T13:11:27.568702Z"
+    },
+    {
+      "id": 23,
+      "narrative_id": 10,
+      "narrative_title": "Developer Tooling Arms Race for Latency & Reliability",
+      "narrative_is_active": true,
+      "title": "MEV Explorer & Simulator",
+      "description": "Real-time MEV dashboard using gTFA/LaserStream for bundle simulation, profitability analysis, and backtesting across Jito/Helius.",
+      "problem": "Traders lack visibility into landing rates/fees; Helius tools expose demand (signals 166,197).",
+      "solution": "Leverage new RPCs for accurate sims; Agave/Alpenglow upgrades boost precision.",
+      "why_solana": "MEV infra (Jito) + fastest RPCs (Helius Gatekeeper) enable real-time edge vs slower chains.",
+      "scale_potential": "MEV market $1B+ annually; network effects as more bots integrate.",
+      "market_signals": "Gatekeeper 7.8x speedup (signal 197); gTFA launch (signal 166).",
+      "supporting_signals": [
+        "New getTransactionsForAddress RPC Method",
+        "Helius launches Gatekeeper edge gateway"
+      ],
+      "created_at": "2026-02-15T13:11:27.568701Z"
+    },
+    {
+      "id": 22,
+      "narrative_id": 10,
+      "narrative_title": "Developer Tooling Arms Race for Latency & Reliability",
+      "narrative_is_active": true,
+      "title": "Bundler Marketplace",
+      "description": "Permissionless marketplace for pump.fun bundlers with reputation scoring, backtesting, and auto-switching based on landing rates.",
+      "problem": "Sniper bots beat launches; repeated Reddit demand for reputable bundlers (signals 325,139).",
+      "solution": "Post-LaunchLab competition + Helius Sender tools create perfect timing; aggregate best performers.",
+      "why_solana": "Memecoin frenzy + Jito bundles demand specialized tooling; low fees enable micro-payments for bundles.",
+      "scale_potential": "Pump.fun dominance = massive volume; comparable to HFT colocation services ($B market).",
+      "market_signals": "Bundler bot demand (signals 325,139); Raydium LaunchLab (signal 334).",
+      "supporting_signals": [
+        "Rising demand for bundler bots in pump.fun launches",
+        "Raydium LaunchLab as Pump.fun competitor"
+      ],
+      "created_at": "2026-02-15T13:11:27.568700Z"
+    },
+    {
+      "id": 21,
+      "narrative_id": 9,
+      "narrative_title": "Privacy Infrastructure Maturing with Hackathon Momentum",
+      "narrative_is_active": true,
+      "title": "ZK Privacy Wallet Shield",
+      "description": "Wallet add-on using Light Protocol ZK (200x cheaper than SPL) + CSPL for shielding DeFi positions from chain analysis.",
+      "problem": "Privacy primitives fragmented; hackathons show convergence (signals 326,223).",
+      "solution": "Consumer-facing layer atop maturing infra; Solflare Magic AI precedent for UX (signal 266).",
+      "why_solana": "ZK compression + rollups cheapest privacy; mobile stack aids consumer onboarding.",
+      "scale_potential": "Every wallet user needs privacy; comparable to Tornado Cash but compliant/onchain.",
+      "market_signals": "Light Token 200x cheaper ZK (signal 223); privacy hackathon 47 submissions (signal 326).",
+      "supporting_signals": [
+        "Privacy and Cheap State Primitives Emerge",
+        "Arcium Announces Confidential Token Standard CSPL"
+      ],
+      "created_at": "2026-02-15T13:11:27.561372Z"
+    }
+  ],
+  "total": 22,
+  "limit": 20,
+  "offset": 0
+}

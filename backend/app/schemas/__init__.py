@@ -1,5 +1,6 @@
 """Pydantic schemas for API request/response validation."""
 
+from app.schemas.landing import LandingResponse
 from app.schemas.narrative import (
     NarrativeResponse,
     NarrativeListResponse,
@@ -10,6 +11,7 @@ from app.schemas.signal import SignalResponse, SignalListResponse, SignalDetailR
 from app.schemas.stats import StatsResponse
 
 __all__ = [
+    "LandingResponse",
     "NarrativeResponse",
     "NarrativeListResponse",
     "NarrativeDetailResponse",
