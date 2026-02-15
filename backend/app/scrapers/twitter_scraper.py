@@ -102,7 +102,6 @@ async def ensure_twitter_sources_exist(
                 source_type="twitter",
                 source_category="social_kol",
                 priority="high",
-                scrape_frequency="4h",
             )
             db.add(ds)
             await db.flush()

@@ -6,8 +6,11 @@ Supports deep link following to depth 2 for blog index pages.
 
 import asyncio
 import io
+import json
+import re
 import time
 from dataclasses import dataclass, field
+from typing import Any
 
 import httpx
 from pypdf import PdfReader
@@ -108,6 +111,14 @@ WEB_SOURCES = [
         "source_category": "research",
         "priority": "low",
         "deep_link": False,
+    },
+    {
+        "name": "Messari",
+        "url": "https://messari.io/",
+        "source_type": "web",
+        "source_category": "research_report",
+        "priority": "high",
+        "deep_link": True,
     },
 ]
 
@@ -255,6 +266,9 @@ async def _scrape_html(
     html = resp.text
     title = extract_title(html)
     main_content = extract_main_content(html)
+    # Messari is often JS-heavy; attempt a better extraction if needed.
+    if _is_messari(ds.url) and (not main_content or len(main_content.strip()) < 200):
+        main_content = _extract_messari_content(html) or main_content
 
     if main_content and len(main_content.strip()) > 50:
         results.append(ScrapeResult(
@@ -266,7 +280,7 @@ async def _scrape_html(
 
     # Follow deep links (depth 2)
     if deep_link:
-        article_links = extract_article_links(html, ds.url)
+        article_links = _discover_deep_links(ds.url, html)
         logger.info(f"  Found {len(article_links)} deep links on {ds.name}")
 
         for link in article_links[:20]:  # Cap at 20 links per source
@@ -278,6 +292,8 @@ async def _scrape_html(
                 html2 = resp2.text
                 article_title = extract_title(html2)
                 article_content = extract_main_content(html2)
+                if _is_messari(link) and (not article_content or len(article_content.strip()) < 200):
+                    article_content = _extract_messari_content(html2) or article_content
 
                 if article_content and len(article_content.strip()) > 100:
                     results.append(ScrapeResult(
@@ -290,6 +306,136 @@ async def _scrape_html(
                 logger.warning(f"  Failed to fetch deep link {link}: {e}")
 
     return results
+
+
+def _is_messari(url: str) -> bool:
+    return "messari.io" in (url or "").lower()
+
+
+def _discover_deep_links(base_url: str, html: str) -> list[str]:
+    """
+    Default deep-link discovery + provider-specific patterns.
+
+    For Messari we explicitly include:
+    - https://messari.io/report/{slug}
+    - https://messari.io/news?id={uuid}
+    """
+    links = extract_article_links(html, base_url)
+    if not _is_messari(base_url):
+        return links
+
+    # Ensure report/news links are captured even if rendered inside scripts.
+    found: set[str] = set(links)
+
+    # href="..." patterns
+    for m in re.finditer(r'href="([^"]+)"', html):
+        href = m.group(1)
+        if "messari.io/report/" in href or "messari.io/news?id=" in href or href.startswith("/report/") or href.startswith("/news?id="):
+            # resolve relative links against base
+            if href.startswith("/"):
+                found.add(f"https://messari.io{href}")
+            elif href.startswith("http"):
+                found.add(href)
+
+    # raw URL patterns inside JSON/scripts
+    for m in re.finditer(r"https?://messari\.io/(report/[^\"\\s]+|news\\?id=[^\"\\s]+)", html):
+        found.add(m.group(0))
+
+    # Keep only the two content types we care about
+    filtered = [
+        u
+        for u in found
+        if ("messari.io/report/" in u) or ("messari.io/news?id=" in u)
+    ]
+    # Stable ordering: prefer reports then news
+    filtered.sort(key=lambda u: (0 if "/report/" in u else 1, u))
+    return filtered
+
+
+def _extract_messari_content(html: str) -> str:
+    """
+    Best-effort content extraction for Messari (Next.js heavy pages).
+    We try:
+    - JSON-LD articleBody
+    - meta description / og:description
+    - __NEXT_DATA__ fields with content-ish keys
+    """
+    from bs4 import BeautifulSoup  # local import to keep dependency scoped
+
+    soup = BeautifulSoup(html, "lxml")
+
+    # 1) JSON-LD
+    for script in soup.find_all("script", attrs={"type": "application/ld+json"}):
+        try:
+            data = json.loads(script.get_text(strip=True) or "{}")
+            bodies = []
+            if isinstance(data, dict):
+                bodies.append(data.get("articleBody"))
+            elif isinstance(data, list):
+                for item in data:
+                    if isinstance(item, dict):
+                        bodies.append(item.get("articleBody"))
+            bodies = [b for b in bodies if isinstance(b, str) and len(b.strip()) > 200]
+            if bodies:
+                return max(bodies, key=len)
+        except Exception:
+            continue
+
+    # 2) Meta descriptions
+    def _meta(name: str, attr: str = "name") -> str | None:
+        tag = soup.find("meta", attrs={attr: name})
+        if tag and tag.get("content"):
+            return str(tag["content"]).strip()
+        return None
+
+    desc = _meta("description") or _meta("og:description", attr="property")
+    og_title = _meta("og:title", attr="property")
+    if desc and og_title:
+        return f"{og_title}\n\n{desc}"
+    if desc:
+        return desc
+
+    # 3) Next.js __NEXT_DATA__ heuristic
+    next_data = soup.find("script", attrs={"id": "__NEXT_DATA__"})
+    if next_data:
+        try:
+            payload = json.loads(next_data.get_text(strip=True) or "{}")
+            chunks: list[str] = []
+
+            def walk(obj: Any, key: str | None = None) -> None:
+                if obj is None:
+                    return
+                if isinstance(obj, str):
+                    s = obj.strip()
+                    if len(s) < 80:
+                        return
+                    if key and any(k in key.lower() for k in ("body", "content", "summary", "description", "markdown", "text", "html")):
+                        chunks.append(s)
+                    return
+                if isinstance(obj, dict):
+                    for k, v in obj.items():
+                        walk(v, key=k)
+                elif isinstance(obj, list):
+                    for v in obj:
+                        walk(v, key=key)
+
+            walk(payload)
+            # pick a few largest chunks
+            uniq = []
+            seen = set()
+            for c in sorted(chunks, key=len, reverse=True):
+                if c in seen:
+                    continue
+                seen.add(c)
+                uniq.append(c)
+                if len(uniq) >= 3:
+                    break
+            if uniq:
+                return "\n\n".join(uniq)
+        except Exception:
+            pass
+
+    return ""
 
 
 async def _scrape_reddit(client: httpx.AsyncClient, ds: DataSource) -> list[ScrapeResult]:
