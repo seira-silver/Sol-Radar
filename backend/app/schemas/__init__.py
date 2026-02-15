@@ -6,6 +6,7 @@ from app.schemas.narrative import (
     NarrativeDetailResponse,
 )
 from app.schemas.idea import IdeaResponse, IdeaListResponse
+from app.schemas.signal import SignalResponse, SignalListResponse, SignalDetailResponse
 from app.schemas.stats import StatsResponse
 
 __all__ = [
@@ -14,5 +15,8 @@ __all__ = [
     "NarrativeDetailResponse",
     "IdeaResponse",
     "IdeaListResponse",
+    "SignalResponse",
+    "SignalListResponse",
+    "SignalDetailResponse",
     "StatsResponse",
 ]
