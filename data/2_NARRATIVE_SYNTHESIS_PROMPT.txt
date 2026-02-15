@@ -65,9 +65,14 @@ Return ONLY valid JSON. No markdown fences, no preamble, no text outside JSON.
       "confidence_reasoning": "Why you rated confidence this way — e.g.
                                appeared in 4 sources vs only 1",
       "supporting_sources": ["helius.dev/blog", "reddit.com/r/solana"],
+      "supporting_signal_ids": [123, 456],
       "key_evidence": [
-        "Specific quote or data point from source X",
-        "Specific observation from source Y"
+        {{
+          "signal_id": 123,
+          "source_name": "Helius Blog",
+          "content_url": "https://www.helius.dev/blog/some-article",
+          "evidence": "Specific quote or concrete observation tied to the signal"
+        }}
       ],
       "tags": ["defi", "infrastructure", "consumer", "mobile", "developer-tooling"],
       "product_ideas": [
@@ -84,7 +89,8 @@ Return ONLY valid JSON. No markdown fences, no preamble, no text outside JSON.
           "market_signals": "Any data points from your sources that suggest
                              demand exists — search volume, repo stars,
                              community requests, KOL mentions etc.",
-          "supporting_signals": ["signal_title_1", "signal_title_2"]
+          "supporting_signals": ["signal_title_1", "signal_title_2"],
+          "supporting_signal_ids": [123, 456]
         }}
 ]
 }}

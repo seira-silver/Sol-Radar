@@ -1,0 +1,128 @@
+{
+  "data": [
+    {
+      "id": "1970898376251056609",
+      "text": "Last month I built a website to track when will solana flip nasdaq which went super viral  https://t.co/Gjs3pqGlaY\n\nAnd this month I built a leaderboard tool for @JupNigeria community which tracks every single trade on @JupiterExchange and bring the heat\n\nIf you need high quality https://t.co/VIkhwx0ge9",
+      "full_text": "Last month I built a website to track when will solana flip nasdaq which went super viral  https://t.co/vgbKzYDpZ7\n\nAnd this month I built a leaderboard tool for @JupNigeria community which tracks every single trade on @JupiterExchange and bring the heat\n\nIf you need high quality and engaging website / app of any type (legal) either web 2 or web 3, hit me up 😉",
+      "created_at": "Wed Sep 24 17:09:25 +0000 2025",
+      "lang": "en",
+      "user_id": "1458498637537939460",
+      "username": "4k_mira",
+      "user_name": "Mira 🪽",
+      "favorite_count": 130,
+      "retweet_count": 24,
+      "reply_count": 48,
+      "quote_count": 10,
+      "view_count": "6786",
+      "bookmark_count": 6,
+      "favorited": false,
+      "retweeted": false,
+      "bookmarked": false,
+      "possibly_sensitive": false,
+      "is_quote_status": false,
+      "is_retweet": false,
+      "conversation_id": null,
+      "in_reply_to_status_id": null,
+      "in_reply_to_user_id": null,
+      "media": [
+        {
+          "media_key": "1970892950377807872",
+          "type": "photo",
+          "url": "https://pbs.twimg.com/media/G1oEsjWXQAACgAQ.jpg",
+          "preview_image_url": null,
+          "width": 1548,
+          "height": 878,
+          "duration_ms": null,
+          "view_count": null,
+          "alt_text": null
+        }
+      ],
+      "urls": [
+        {
+          "url": "",
+          "expanded_url": null,
+          "display_url": null,
+          "unwound_url": null
+        }
+      ],
+      "hashtags": [],
+      "user_mentions": [
+        {
+          "id": "1834176214606422016",
+          "username": "JupNigeria",
+          "name": "JUP Nigeria 🇳🇬",
+          "indices": [162, 173]
+        },
+        {
+          "id": "1446489618208067586",
+          "username": "JupiterExchange",
+          "name": "Jupiter",
+          "indices": [219, 235]
+        }
+      ],
+      "poll": null,
+      "place": null,
+      "quoted_status_id": null,
+      "retweeted_status_id": null,
+      "edit_tweet_ids": ["1970898376251056609"],
+      "editable_until_msecs": "1758737365000",
+      "edits_remaining": "5",
+      "is_edit_eligible": false,
+      "has_card": false,
+      "thumbnail_url": null,
+      "thumbnail_title": null,
+      "has_community_notes": null,
+      "source": null
+    },
+    {
+      "id": "2017919265379152003",
+      "text": "RT @VictorShallang: I built Vacuum, a tool to recover SOL that Kora operators lose to forgotten accounts.\nEvery sponsored account locks ~0.…",
+      "full_text": "RT @VictorShallang: I built Vacuum, a tool to recover SOL that Kora operators lose to forgotten accounts.\nEvery sponsored account locks ~0.…",
+      "created_at": "Sun Feb 01 11:13:38 +0000 2026",
+      "lang": "en",
+      "user_id": "1458498637537939460",
+      "username": "4k_mira",
+      "user_name": "Mira 🪽",
+      "favorite_count": 0,
+      "retweet_count": 5,
+      "reply_count": 0,
+      "quote_count": 0,
+      "view_count": null,
+      "bookmark_count": 0,
+      "favorited": false,
+      "retweeted": false,
+      "bookmarked": false,
+      "possibly_sensitive": null,
+      "is_quote_status": true,
+      "is_retweet": true,
+      "conversation_id": null,
+      "in_reply_to_status_id": null,
+      "in_reply_to_user_id": null,
+      "media": [],
+      "urls": [],
+      "hashtags": [],
+      "user_mentions": [
+        {
+          "id": "1688952931813408768",
+          "username": "VictorShallang",
+          "name": "Victor Shallangwa",
+          "indices": [3, 18]
+        }
+      ],
+      "poll": null,
+      "place": null,
+      "quoted_status_id": null,
+      "retweeted_status_id": "2017674264254566728",
+      "edit_tweet_ids": ["2017919265379152003"],
+      "editable_until_msecs": "1769948018650",
+      "edits_remaining": "5",
+      "is_edit_eligible": false,
+      "has_card": false,
+      "thumbnail_url": null,
+      "thumbnail_title": null,
+      "has_community_notes": null,
+      "source": null
+    }
+  ],
+  "next_cursor": "DAAHCgABHA6TaG8___QLAAIAAAATMTk5Nzc2OTMwOTEwNDMyOTA5OQgAAwAAAAIAAA"
+}
