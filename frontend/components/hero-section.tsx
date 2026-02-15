@@ -1,6 +1,6 @@
 "use client"
 
-import { statsData } from "@/lib/mock-data"
+import type { Stats } from "@/lib/api-types"
 import {
   Radar,
   Activity,
@@ -10,7 +10,8 @@ import {
   Globe,
 } from "lucide-react"
 
-function formatTime(isoString: string) {
+function formatTime(isoString: string | null | undefined) {
+  if (!isoString) return "—"
   const date = new Date(isoString)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -23,7 +24,8 @@ function formatTime(isoString: string) {
   return `${Math.floor(diffHrs / 24)}d ago`
 }
 
-function formatNextSynthesis(isoString: string) {
+function formatNextSynthesis(isoString: string | null | undefined) {
+  if (!isoString) return "—"
   const date = new Date(isoString)
   return date.toLocaleDateString("en-US", {
     month: "short",
@@ -33,58 +35,58 @@ function formatNextSynthesis(isoString: string) {
   })
 }
 
-const stats = [
-  {
-    label: "Active Narratives",
-    value: statsData.active_narratives_count,
-    icon: Radar,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-    ringColor: "ring-primary/20",
-  },
-  {
-    label: "Signals Detected",
-    value: statsData.total_signals_count,
-    icon: Activity,
-    color: "text-chart-2",
-    bgColor: "bg-chart-2/10",
-    ringColor: "ring-chart-2/20",
-  },
-  {
-    label: "Build Ideas",
-    value: statsData.total_ideas_count,
-    icon: Lightbulb,
-    color: "text-warning",
-    bgColor: "bg-warning/10",
-    ringColor: "ring-warning/20",
-  },
-  {
-    label: "Avg Velocity",
-    value: statsData.avg_velocity_score.toFixed(1),
-    icon: Zap,
-    color: "text-chart-5",
-    bgColor: "bg-chart-5/10",
-    ringColor: "ring-chart-5/20",
-  },
-  {
-    label: "Active Builders",
-    value: statsData.active_builders,
-    icon: Users,
-    color: "text-chart-4",
-    bgColor: "bg-chart-4/10",
-    ringColor: "ring-chart-4/20",
-  },
-  {
-    label: "Sources Scraped",
-    value: statsData.sources_scraped_count,
-    icon: Globe,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-    ringColor: "ring-primary/20",
-  },
-]
+export function HeroSection({ statsData }: { statsData: Stats | null }) {
+  const stats = [
+    {
+      label: "Active Narratives",
+      value: statsData?.active_narratives_count ?? 0,
+      icon: Radar,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+      ringColor: "ring-primary/20",
+    },
+    {
+      label: "Signals Detected",
+      value: statsData?.total_signals_count ?? 0,
+      icon: Activity,
+      color: "text-chart-2",
+      bgColor: "bg-chart-2/10",
+      ringColor: "ring-chart-2/20",
+    },
+    {
+      label: "Build Ideas",
+      value: statsData?.total_ideas_count ?? 0,
+      icon: Lightbulb,
+      color: "text-warning",
+      bgColor: "bg-warning/10",
+      ringColor: "ring-warning/20",
+    },
+    {
+      label: "Avg Velocity",
+      value: (statsData?.avg_velocity_score ?? 0).toFixed(1),
+      icon: Zap,
+      color: "text-chart-5",
+      bgColor: "bg-chart-5/10",
+      ringColor: "ring-chart-5/20",
+    },
+    {
+      label: "Active Builders",
+      value: statsData?.active_builders ?? 0,
+      icon: Users,
+      color: "text-chart-4",
+      bgColor: "bg-chart-4/10",
+      ringColor: "ring-chart-4/20",
+    },
+    {
+      label: "Sources Scraped",
+      value: statsData?.sources_scraped_count ?? 0,
+      icon: Globe,
+      color: "text-primary",
+      bgColor: "bg-primary/10",
+      ringColor: "ring-primary/20",
+    },
+  ]
 
-export function HeroSection() {
   return (
     <section className="relative overflow-hidden">
       {/* Glowing background orbs */}
@@ -102,7 +104,7 @@ export function HeroSection() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
             </span>
-            Live - Updated {formatTime(statsData.last_web_scrape_time)}
+            Live - Updated {formatTime(statsData?.last_web_scrape_time)}
           </div>
           <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
             Solana Narrative
@@ -110,7 +112,7 @@ export function HeroSection() {
           </h1>
           <p className="mt-3 max-w-2xl text-pretty text-sm text-muted-foreground sm:text-base">
             Detecting emerging narratives and early signals within the Solana ecosystem.
-            Next synthesis: {formatNextSynthesis(statsData.next_synthesis_time)}
+            Next synthesis: {formatNextSynthesis(statsData?.next_synthesis_time)}
           </p>
         </div>
 

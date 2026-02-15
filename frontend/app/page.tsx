@@ -1,13 +1,19 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import { Navbar } from "@/components/navbar"
 import type { TabType } from "@/components/navbar"
 import { HeroSection } from "@/components/hero-section"
 import { NarrativeCard } from "@/components/narrative-card"
 import { SignalCard } from "@/components/signal-card"
 import { HackathonCard } from "@/components/hackathon-card"
-import { narrativesData, signalsData } from "@/lib/mock-data"
+import type { Narrative, Signal, Stats } from "@/lib/api-types"
+import {
+  getLanding,
+  getNarrativeDetail,
+  listHackathonNarratives,
+  listSignals,
+} from "@/lib/api"
 import { useInfiniteScroll } from "@/hooks/use-infinite-scroll"
 import { Loader2, Trophy, Flame } from "lucide-react"
 
@@ -15,66 +21,257 @@ const ITEMS_PER_PAGE = 6
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState<TabType>("narratives")
-  const [narrativeCount, setNarrativeCount] = useState(ITEMS_PER_PAGE)
-  const [signalCount, setSignalCount] = useState(ITEMS_PER_PAGE)
+  const [stats, setStats] = useState<Stats | null>(null)
 
-  // Hackathon narratives: those with ideas and sorted by idea count * velocity
-  const hackathonNarratives = useMemo(
-    () =>
-      [...narrativesData]
-        .filter((n) => n.ideas.length > 0)
-        .sort(
-          (a, b) =>
-            b.ideas.length * b.velocity_score - a.ideas.length * a.velocity_score
-        ),
-    []
-  )
+  // --- Narratives ---
+  const [narratives, setNarratives] = useState<Narrative[]>([])
+  const [narrativesTotal, setNarrativesTotal] = useState(0)
+  const [narrativesLoading, setNarrativesLoading] = useState(false)
+  const narrativesLoadingRef = useRef(false)
+  const narrativesFetchedRef = useRef(false)
+
+  // --- Signals ---
+  const [signals, setSignals] = useState<Signal[]>([])
+  const [signalsTotal, setSignalsTotal] = useState(0)
+  const [signalsLoading, setSignalsLoading] = useState(false)
+  const signalsLoadingRef = useRef(false)
+  const signalsFetchedRef = useRef(false)
+
+  // --- Hackathons ---
+  const [hackathons, setHackathons] = useState<Narrative[]>([])
+  const [hackathonsTotal, setHackathonsTotal] = useState(0)
+  const [hackathonsLoading, setHackathonsLoading] = useState(false)
+  const hackathonsLoadingRef = useRef(false)
+  const hackathonsFetchedRef = useRef(false)
+
+  const hasMoreNarratives = narratives.length < narrativesTotal
+  const hasMoreSignals = signals.length < signalsTotal
+  const hasMoreHackathons = hackathons.length < hackathonsTotal
 
   const totalHackathonIdeas = useMemo(
-    () => hackathonNarratives.reduce((sum, n) => sum + n.ideas.length, 0),
-    [hackathonNarratives]
+    () =>
+      hackathons.reduce(
+        (sum, n) => sum + (n.ideas?.length ?? n.idea_count ?? 0),
+        0
+      ),
+    [hackathons]
   )
 
-  const visibleNarratives = useMemo(
-    () => narrativesData.slice(0, narrativeCount),
-    [narrativeCount]
-  )
-  const visibleSignals = useMemo(
-    () => signalsData.slice(0, signalCount),
-    [signalCount]
-  )
+  // ─── Narratives (via /landing) ─────────────────────────────────
 
-  const hasMoreNarratives = narrativeCount < narrativesData.length
-  const hasMoreSignals = signalCount < signalsData.length
+  useEffect(() => {
+    if (narrativesFetchedRef.current) return
+    narrativesFetchedRef.current = true
+
+    const ac = new AbortController()
+    setNarrativesLoading(true)
+    narrativesLoadingRef.current = true
+
+    getLanding({
+      narratives_limit: ITEMS_PER_PAGE,
+      narratives_offset: 0,
+      signal: ac.signal,
+    })
+      .then((data) => {
+        setStats(data.stats)
+        setNarratives(data.narratives.narratives)
+        setNarrativesTotal(data.narratives.total)
+      })
+      .catch((err) => {
+        if (err?.name !== "AbortError") console.error("Landing fetch failed:", err)
+      })
+      .finally(() => {
+        setNarrativesLoading(false)
+        narrativesLoadingRef.current = false
+      })
+
+    return () => ac.abort()
+  }, [])
 
   const loadMoreNarratives = useCallback(() => {
-    setNarrativeCount((prev) => Math.min(prev + ITEMS_PER_PAGE, narrativesData.length))
+    if (narrativesLoadingRef.current) return
+    narrativesLoadingRef.current = true
+    setNarrativesLoading(true)
+
+    setNarratives((prev) => {
+      const offset = prev.length
+
+      getLanding({
+        narratives_limit: ITEMS_PER_PAGE,
+        narratives_offset: offset,
+      })
+        .then((data) => {
+          setStats(data.stats)
+          setNarratives((curr) => [...curr, ...data.narratives.narratives])
+          setNarrativesTotal(data.narratives.total)
+        })
+        .catch((err) => {
+          console.error("Load more narratives failed:", err)
+        })
+        .finally(() => {
+          setNarrativesLoading(false)
+          narrativesLoadingRef.current = false
+        })
+
+      return prev // no immediate change
+    })
   }, [])
 
+  // ─── Signals (via /signals) ────────────────────────────────────
+
+  useEffect(() => {
+    if (activeTab !== "signals") return
+    if (signalsFetchedRef.current) return
+    signalsFetchedRef.current = true
+
+    const ac = new AbortController()
+    setSignalsLoading(true)
+    signalsLoadingRef.current = true
+
+    listSignals({ limit: ITEMS_PER_PAGE, offset: 0, signal: ac.signal })
+      .then((data) => {
+        setSignals(data.signals)
+        setSignalsTotal(data.total)
+      })
+      .catch((err) => {
+        if (err?.name !== "AbortError") console.error("Signals fetch failed:", err)
+      })
+      .finally(() => {
+        setSignalsLoading(false)
+        signalsLoadingRef.current = false
+      })
+
+    return () => ac.abort()
+  }, [activeTab])
+
   const loadMoreSignals = useCallback(() => {
-    setSignalCount((prev) => Math.min(prev + ITEMS_PER_PAGE, signalsData.length))
+    if (signalsLoadingRef.current) return
+    signalsLoadingRef.current = true
+    setSignalsLoading(true)
+
+    setSignals((prev) => {
+      const offset = prev.length
+
+      listSignals({ limit: ITEMS_PER_PAGE, offset })
+        .then((data) => {
+          setSignals((curr) => [...curr, ...data.signals])
+          setSignalsTotal(data.total)
+        })
+        .catch((err) => {
+          console.error("Load more signals failed:", err)
+        })
+        .finally(() => {
+          setSignalsLoading(false)
+          signalsLoadingRef.current = false
+        })
+
+      return prev
+    })
   }, [])
+
+  // ─── Hackathons (via /narratives/hackathons) ───────────────────
+
+  useEffect(() => {
+    if (activeTab !== "hackathon") return
+    if (hackathonsFetchedRef.current) return
+    hackathonsFetchedRef.current = true
+
+    const ac = new AbortController()
+    setHackathonsLoading(true)
+    hackathonsLoadingRef.current = true
+
+    listHackathonNarratives({ limit: ITEMS_PER_PAGE, offset: 0, signal: ac.signal })
+      .then((data) => {
+        setHackathons(data.narratives)
+        setHackathonsTotal(data.total)
+        // Hydrate ideas from detail endpoint for hackathon cards
+        hydrateMissingIdeas(data.narratives)
+      })
+      .catch((err) => {
+        if (err?.name !== "AbortError") console.error("Hackathons fetch failed:", err)
+      })
+      .finally(() => {
+        setHackathonsLoading(false)
+        hackathonsLoadingRef.current = false
+      })
+
+    return () => ac.abort()
+  }, [activeTab])
+
+  const loadMoreHackathons = useCallback(() => {
+    if (hackathonsLoadingRef.current) return
+    hackathonsLoadingRef.current = true
+    setHackathonsLoading(true)
+
+    setHackathons((prev) => {
+      const offset = prev.length
+
+      listHackathonNarratives({ limit: ITEMS_PER_PAGE, offset })
+        .then((data) => {
+          setHackathons((curr) => [...curr, ...data.narratives])
+          setHackathonsTotal(data.total)
+          hydrateMissingIdeas(data.narratives)
+        })
+        .catch((err) => {
+          console.error("Load more hackathons failed:", err)
+        })
+        .finally(() => {
+          setHackathonsLoading(false)
+          hackathonsLoadingRef.current = false
+        })
+
+      return prev
+    })
+  }, [])
+
+  function hydrateMissingIdeas(page: Narrative[]) {
+    const needsDetail = page.filter(
+      (n) => (n.idea_count ?? 0) > 0 && (!n.ideas || n.ideas.length === 0)
+    )
+    if (needsDetail.length === 0) return
+
+    Promise.all(
+      needsDetail.map((n) =>
+        getNarrativeDetail({ id: n.id }).catch(() => null)
+      )
+    ).then((details) => {
+      setHackathons((prev) =>
+        prev.map((n) => {
+          const d = details.find((x) => x && x.id === n.id)
+          return d ? { ...n, ideas: d.ideas } : n
+        })
+      )
+    })
+  }
+
+  // ─── Infinite scroll hooks ─────────────────────────────────────
 
   const { sentinelRef: narrativeSentinelRef } = useInfiniteScroll(
     loadMoreNarratives,
-    hasMoreNarratives
+    hasMoreNarratives && !narrativesLoading
   )
   const { sentinelRef: signalSentinelRef } = useInfiniteScroll(
     loadMoreSignals,
-    hasMoreSignals
+    hasMoreSignals && !signalsLoading
   )
+  const { sentinelRef: hackathonSentinelRef } = useInfiniteScroll(
+    loadMoreHackathons,
+    hasMoreHackathons && !hackathonsLoading
+  )
+
+  // ─── Tab headers ───────────────────────────────────────────────
 
   const tabHeaders: Record<TabType, { title: string; subtitle: string }> = {
     narratives: {
-      title: `Active Narratives (${narrativesData.length})`,
+      title: `Active Narratives (${narrativesTotal})`,
       subtitle: "Sorted by velocity score",
     },
     signals: {
-      title: `Recent Signals (${signalsData.length})`,
+      title: `Recent Signals (${signalsTotal})`,
       subtitle: "Sorted by recency",
     },
     hackathon: {
-      title: `Hackathon Tracks (${hackathonNarratives.length})`,
+      title: `Hackathon Tracks (${hackathonsTotal})`,
       subtitle: `${totalHackathonIdeas} buildable project ideas across all narratives`,
     },
   }
@@ -82,7 +279,7 @@ export default function Page() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
-      <HeroSection />
+      <HeroSection statsData={stats} />
 
       <main className="mx-auto max-w-7xl px-4 pb-20 sm:px-6">
         {/* Tab content header */}
@@ -120,10 +317,10 @@ export default function Page() {
         {/* Narratives tab */}
         {activeTab === "narratives" && (
           <div className="space-y-4">
-            {visibleNarratives.map((narrative) => (
+            {narratives.map((narrative) => (
               <NarrativeCard key={narrative.id} narrative={narrative} />
             ))}
-            {hasMoreNarratives && (
+            {(hasMoreNarratives || narrativesLoading) && (
               <div ref={narrativeSentinelRef} className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
@@ -134,10 +331,10 @@ export default function Page() {
         {/* Signals tab */}
         {activeTab === "signals" && (
           <div className="space-y-4">
-            {visibleSignals.map((signal) => (
+            {signals.map((signal) => (
               <SignalCard key={signal.id} signal={signal} />
             ))}
-            {hasMoreSignals && (
+            {(hasMoreSignals || signalsLoading) && (
               <div ref={signalSentinelRef} className="flex items-center justify-center py-8">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
@@ -148,9 +345,14 @@ export default function Page() {
         {/* Hackathon tab */}
         {activeTab === "hackathon" && (
           <div className="space-y-4">
-            {hackathonNarratives.map((narrative) => (
+            {hackathons.map((narrative) => (
               <HackathonCard key={narrative.id} narrative={narrative} />
             ))}
+            {(hasMoreHackathons || hackathonsLoading) && (
+              <div ref={hackathonSentinelRef} className="flex items-center justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
           </div>
         )}
       </main>

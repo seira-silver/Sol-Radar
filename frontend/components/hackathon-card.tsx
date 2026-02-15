@@ -21,7 +21,7 @@ import {
   Clock,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import type { Narrative, Idea } from "@/lib/mock-data"
+import type { Narrative, Idea } from "@/lib/api-types"
 
 function getVelocityColor(score: number) {
   if (score >= 4) return "text-emerald-400"
@@ -186,7 +186,8 @@ function HackathonIdeaCard({ idea, index }: { idea: Idea; index: number }) {
 
 export function HackathonCard({ narrative }: { narrative: Narrative }) {
   const [expanded, setExpanded] = useState(false)
-  const totalIdeas = narrative.ideas.length
+  const ideas = narrative.ideas ?? []
+  const totalIdeas = ideas.length > 0 ? ideas.length : narrative.idea_count ?? 0
   const totalEvidence = narrative.key_evidence.length
 
   return (
@@ -346,7 +347,7 @@ export function HackathonCard({ narrative }: { narrative: Narrative }) {
             </div>
 
             {/* Build ideas section */}
-            {narrative.ideas.length > 0 && (
+            {ideas.length > 0 && (
               <div className="relative rounded-2xl border border-orange-500/15 bg-gradient-to-b from-orange-500/[0.04] to-transparent p-5">
                 <div className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full bg-gradient-to-b from-orange-400 via-amber-400/50 to-transparent" />
                 <div className="mb-4 flex items-center gap-3 pl-3">
@@ -356,12 +357,12 @@ export function HackathonCard({ narrative }: { narrative: Narrative }) {
                   <div>
                     <h4 className="text-sm font-bold text-foreground">Hackathon Project Ideas</h4>
                     <p className="text-[11px] text-muted-foreground">
-                      {narrative.ideas.length} buildable projects ready for a hackathon submission
+                      {ideas.length} buildable projects ready for a hackathon submission
                     </p>
                   </div>
                 </div>
                 <div className="space-y-3 pl-3">
-                  {narrative.ideas.map((idea, idx) => (
+                  {ideas.map((idea, idx) => (
                     <HackathonIdeaCard key={idea.id} idea={idea} index={idx} />
                   ))}
                 </div>

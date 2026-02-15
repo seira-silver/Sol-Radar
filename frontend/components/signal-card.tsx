@@ -8,7 +8,7 @@ import {
   Globe,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import type { Signal } from "@/lib/mock-data"
+import type { Signal } from "@/lib/api-types"
 
 function getSignalTypeConfig(type: string) {
   switch (type) {
