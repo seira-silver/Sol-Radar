@@ -44,6 +44,11 @@ export default function Page() {
   const hackathonsLoadingRef = useRef(false)
   const hackathonsFetchedRef = useRef(false)
 
+  // Offset refs — track current pagination cursor without reading state in callbacks
+  const narrativesOffsetRef = useRef(0)
+  const signalsOffsetRef = useRef(0)
+  const hackathonsOffsetRef = useRef(0)
+
   const hasMoreNarratives = narratives.length < narrativesTotal
   const hasMoreSignals = signals.length < signalsTotal
   const hasMoreHackathons = hackathons.length < hackathonsTotal
@@ -56,6 +61,29 @@ export default function Page() {
       ),
     [hackathons]
   )
+
+  // ─── Hydrate hackathon ideas from detail endpoint ──────────────
+  // Returns a promise so callers can chain it into the loading lifecycle.
+
+  function hydrateMissingIdeas(page: Narrative[]): Promise<void> {
+    const needsDetail = page.filter(
+      (n) => (n.idea_count ?? 0) > 0 && (!n.ideas || n.ideas.length === 0)
+    )
+    if (needsDetail.length === 0) return Promise.resolve()
+
+    return Promise.all(
+      needsDetail.map((n) =>
+        getNarrativeDetail({ id: n.id }).catch(() => null)
+      )
+    ).then((details) => {
+      setHackathons((prev) =>
+        prev.map((n) => {
+          const d = details.find((x) => x && x.id === n.id)
+          return d ? { ...n, ideas: d.ideas } : n
+        })
+      )
+    })
+  }
 
   // ─── Narratives (via /landing) ─────────────────────────────────
 
@@ -76,6 +104,7 @@ export default function Page() {
         setStats(data.stats)
         setNarratives(data.narratives.narratives)
         setNarrativesTotal(data.narratives.total)
+        narrativesOffsetRef.current = data.narratives.narratives.length
       })
       .catch((err) => {
         if (err?.name !== "AbortError") console.error("Landing fetch failed:", err)
@@ -93,28 +122,26 @@ export default function Page() {
     narrativesLoadingRef.current = true
     setNarrativesLoading(true)
 
-    setNarratives((prev) => {
-      const offset = prev.length
+    const offset = narrativesOffsetRef.current
 
-      getLanding({
-        narratives_limit: ITEMS_PER_PAGE,
-        narratives_offset: offset,
-      })
-        .then((data) => {
-          setStats(data.stats)
-          setNarratives((curr) => [...curr, ...data.narratives.narratives])
-          setNarrativesTotal(data.narratives.total)
-        })
-        .catch((err) => {
-          console.error("Load more narratives failed:", err)
-        })
-        .finally(() => {
-          setNarrativesLoading(false)
-          narrativesLoadingRef.current = false
-        })
-
-      return prev // no immediate change
+    getLanding({
+      narratives_limit: ITEMS_PER_PAGE,
+      narratives_offset: offset,
     })
+      .then((data) => {
+        const page = data.narratives.narratives
+        setStats(data.stats)
+        setNarratives((curr) => [...curr, ...page])
+        setNarrativesTotal(data.narratives.total)
+        narrativesOffsetRef.current = offset + page.length
+      })
+      .catch((err) => {
+        console.error("Load more narratives failed:", err)
+      })
+      .finally(() => {
+        setNarrativesLoading(false)
+        narrativesLoadingRef.current = false
+      })
   }, [])
 
   // ─── Signals (via /signals) ────────────────────────────────────
@@ -132,6 +159,7 @@ export default function Page() {
       .then((data) => {
         setSignals(data.signals)
         setSignalsTotal(data.total)
+        signalsOffsetRef.current = data.signals.length
       })
       .catch((err) => {
         if (err?.name !== "AbortError") console.error("Signals fetch failed:", err)
@@ -149,24 +177,21 @@ export default function Page() {
     signalsLoadingRef.current = true
     setSignalsLoading(true)
 
-    setSignals((prev) => {
-      const offset = prev.length
+    const offset = signalsOffsetRef.current
 
-      listSignals({ limit: ITEMS_PER_PAGE, offset })
-        .then((data) => {
-          setSignals((curr) => [...curr, ...data.signals])
-          setSignalsTotal(data.total)
-        })
-        .catch((err) => {
-          console.error("Load more signals failed:", err)
-        })
-        .finally(() => {
-          setSignalsLoading(false)
-          signalsLoadingRef.current = false
-        })
-
-      return prev
-    })
+    listSignals({ limit: ITEMS_PER_PAGE, offset })
+      .then((data) => {
+        setSignals((curr) => [...curr, ...data.signals])
+        setSignalsTotal(data.total)
+        signalsOffsetRef.current = offset + data.signals.length
+      })
+      .catch((err) => {
+        console.error("Load more signals failed:", err)
+      })
+      .finally(() => {
+        setSignalsLoading(false)
+        signalsLoadingRef.current = false
+      })
   }, [])
 
   // ─── Hackathons (via /narratives/hackathons) ───────────────────
@@ -184,8 +209,9 @@ export default function Page() {
       .then((data) => {
         setHackathons(data.narratives)
         setHackathonsTotal(data.total)
-        // Hydrate ideas from detail endpoint for hackathon cards
-        hydrateMissingIdeas(data.narratives)
+        hackathonsOffsetRef.current = data.narratives.length
+        // Chain hydration so .finally() waits for it to complete
+        return hydrateMissingIdeas(data.narratives)
       })
       .catch((err) => {
         if (err?.name !== "AbortError") console.error("Hackathons fetch failed:", err)
@@ -203,46 +229,24 @@ export default function Page() {
     hackathonsLoadingRef.current = true
     setHackathonsLoading(true)
 
-    setHackathons((prev) => {
-      const offset = prev.length
+    const offset = hackathonsOffsetRef.current
 
-      listHackathonNarratives({ limit: ITEMS_PER_PAGE, offset })
-        .then((data) => {
-          setHackathons((curr) => [...curr, ...data.narratives])
-          setHackathonsTotal(data.total)
-          hydrateMissingIdeas(data.narratives)
-        })
-        .catch((err) => {
-          console.error("Load more hackathons failed:", err)
-        })
-        .finally(() => {
-          setHackathonsLoading(false)
-          hackathonsLoadingRef.current = false
-        })
-
-      return prev
-    })
+    listHackathonNarratives({ limit: ITEMS_PER_PAGE, offset })
+      .then((data) => {
+        setHackathons((curr) => [...curr, ...data.narratives])
+        setHackathonsTotal(data.total)
+        hackathonsOffsetRef.current = offset + data.narratives.length
+        // Chain hydration so .finally() waits for it to complete
+        return hydrateMissingIdeas(data.narratives)
+      })
+      .catch((err) => {
+        console.error("Load more hackathons failed:", err)
+      })
+      .finally(() => {
+        setHackathonsLoading(false)
+        hackathonsLoadingRef.current = false
+      })
   }, [])
-
-  function hydrateMissingIdeas(page: Narrative[]) {
-    const needsDetail = page.filter(
-      (n) => (n.idea_count ?? 0) > 0 && (!n.ideas || n.ideas.length === 0)
-    )
-    if (needsDetail.length === 0) return
-
-    Promise.all(
-      needsDetail.map((n) =>
-        getNarrativeDetail({ id: n.id }).catch(() => null)
-      )
-    ).then((details) => {
-      setHackathons((prev) =>
-        prev.map((n) => {
-          const d = details.find((x) => x && x.id === n.id)
-          return d ? { ...n, ideas: d.ideas } : n
-        })
-      )
-    })
-  }
 
   // ─── Infinite scroll hooks ─────────────────────────────────────
 
