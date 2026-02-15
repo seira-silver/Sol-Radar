@@ -7,12 +7,15 @@ narratives with actionable product ideas.
 import json
 from datetime import timedelta
 
+import sqlalchemy as sa
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.analyzers.llm_client import llm_client
+from app.analyzers.prompts import get_narrative_synthesis_prompt
 from app.models.signal import Signal
 from app.models.narrative import Narrative, NarrativeSource
+from app.models.narrative_signal_link import NarrativeSignalLink
 from app.models.idea import Idea
 from app.models.scraped_content import ScrapedContent
 from app.models.data_source import DataSource
@@ -23,98 +26,11 @@ from app.utils.logger import logger
 settings = get_settings()
 
 
-NARRATIVE_SYNTHESIS_PROMPT = """
-You are the core reasoning engine of a Solana Ecosystem Narrative Detection Tool.
-
-Your role is to receive structured signal reports extracted from multiple data
-sources over the past 14 days, then identify the most important EMERGING
-NARRATIVES within the Solana ecosystem and generate high-quality, actionable
-product ideas around each one.
-
-## Who Uses This Output
-
-- Founders deciding what to build next on Solana
-- Investors looking for early signals before a category gets crowded
-- Ecosystem teams at Solana Foundation, Superteam, and accelerators tracking
-  what builders are gravitating toward
-
-## Definition of a Narrative
-
-A narrative is NOT just a trending topic. A narrative is:
-
-- A directional shift in how people are building, using, or thinking about
-  Solana
-- Backed by signals from multiple independent sources (cross-source validation)
-- Early enough that it is not yet widely covered or obvious
-- Actionable — something a founder could build a product around right now
-
-## Your Signal Reports
-
-The following JSON array contains signal reports from {total_sources} sources
-scraped between {start_date} and {end_date}:
-
-{all_signal_reports}
-
-## Instructions
-
-1. Read all signal reports carefully
-2. Look for CONVERGENCE — signals appearing across multiple sources are
-   stronger narratives than single-source signals
-3. Rank narratives by: cross-source validation > novelty > signal strength
-4. For each narrative, generate 3-5 product ideas. Each idea must be:
-   - Concrete and specific (not "build a DeFi app")
-   - Grounded in the evidence you found — cite which signals support it
-   - Evaluated for market potential with honest reasoning
-   - Described with a clear problem it solves and why Solana is the right
-     platform for it
-5. Be skeptical. If signals are weak or only appear in one source, mark the
-   narrative confidence as low. Do not inflate weak signals into strong
-   narratives to fill space.
-6. Prioritize NOVELTY and EXPLAINABILITY over volume. 4 strong narratives
-   beats 10 weak ones.
-
-Return ONLY valid JSON. No markdown fences, no preamble, no text outside JSON.
-
-## Output Schema
-
-{{
-  "run_date": "{end_date}",
-  "fortnight_period": "{start_date} to {end_date}",
-  "total_sources_analyzed": {total_sources},
-  "narratives": [
-    {{
-      "rank": 1,
-      "title": "Concise narrative title",
-      "summary": "3-4 sentence explanation of what is emerging, what changed
-                  this fortnight, and why it matters to the Solana ecosystem",
-      "confidence": "high | medium | low",
-      "confidence_reasoning": "Why you rated confidence this way",
-      "supporting_sources": ["source_name_1", "source_name_2"],
-      "key_evidence": [
-        "Specific quote or data point from source X",
-        "Specific observation from source Y"
-      ],
-      "tags": ["defi", "infrastructure", "consumer", "mobile", "developer-tooling", "hackathon"],
-      "product_ideas": [
-        {{
-          "title": "Product idea name",
-          "description": "What this product does in 2-3 sentences",
-          "problem": "The specific gap or pain point this solves",
-          "solution": "How this product solves it and why now is the right time",
-          "why_solana": "Why Solana specifically is the right chain for this",
-          "scale_potential": "Why this could grow — TAM, comparable products etc.",
-          "market_signals": "Any data points suggesting demand exists",
-          "supporting_signals": ["signal_title_1", "signal_title_2"]
-        }}
-      ]
-    }}
-  ],
-  "total_narratives_found": 0,
-  "low_confidence_observations": [
-    "Brief note about something potentially interesting but not strong enough"
-  ]
-}}
-"""
+_STAGE2_SYSTEM_PROMPT = (
+    "You are a strict JSON generator. "
+    "Return ONLY valid JSON with no markdown/code fences and no extra text. "
+    "Do not invent sources, quotes, or evidence; only use the provided signal reports."
+)
 
 
 async def run_narrative_synthesis(db: AsyncSession) -> dict:
@@ -146,13 +62,23 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
     # Build signal reports grouped by source
     source_signals: dict[str, list[dict]] = {}
     source_id_map: dict[str, int] = {}  # source_name -> data_source_id
+    signal_to_source_name: dict[int, str] = {}
+    signal_to_source_id: dict[int, int] = {}
+    signal_to_content_url: dict[int, str] = {}
+    signal_to_title: dict[int, str] = {}
 
     for signal, content, ds in rows:
         if ds.name not in source_signals:
             source_signals[ds.name] = []
             source_id_map[ds.name] = ds.id
 
+        signal_to_source_name[signal.id] = ds.name
+        signal_to_source_id[signal.id] = ds.id
+        signal_to_content_url[signal.id] = content.source_url
+        signal_to_title[signal.id] = signal.signal_title
+
         source_signals[ds.name].append({
+            "signal_id": signal.id,
             "signal_title": signal.signal_title,
             "description": signal.description,
             "signal_type": signal.signal_type,
@@ -160,7 +86,8 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
             "evidence": signal.evidence,
             "related_projects": signal.related_projects,
             "tags": signal.tags,
-            "source_url": content.source_url,
+            "content_url": content.source_url,
+            "source_profile_url": ds.url,
         })
 
     # Format signal reports for the prompt
@@ -179,7 +106,7 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
         logger.info(f"[STAGE 2]   {src_name}: {len(sigs)} signals")
 
     # Build and send prompt
-    prompt = NARRATIVE_SYNTHESIS_PROMPT.format(
+    prompt = get_narrative_synthesis_prompt().format(
         total_sources=total_sources,
         start_date=start_date.strftime("%Y-%m-%d"),
         end_date=now.strftime("%Y-%m-%d"),
@@ -187,54 +114,161 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
     )
 
     logger.info("[STAGE 2] Sending signals to LLM for narrative synthesis...")
-    llm_result = await llm_client.generate_json(prompt)
+    llm_result = await llm_client.generate_json(prompt, system_prompt=_STAGE2_SYSTEM_PROMPT)
     if llm_result is None:
         logger.error("[STAGE 2] LLM returned no result for narrative synthesis")
         return {"narratives_created": 0, "ideas_created": 0}
+
+    narratives_data = llm_result.get("narratives", [])
+    # If we have signals but got no narratives, re-ask with a stronger constraint
+    if not narratives_data and total_signal_count > 0:
+        logger.warning("[STAGE 2] LLM returned 0 narratives; retrying with minimum narrative constraint")
+        retry_prompt = (
+            prompt
+            + "\n\nIMPORTANT:\n"
+            + "- If there are any meaningful signals at all, you MUST output at least 1 narrative.\n"
+            + "- It is acceptable to mark confidence as 'low' and explain uncertainty.\n"
+            + "- Do NOT fabricate evidence; only cite from the provided signal reports.\n"
+        )
+        llm_result_retry = await llm_client.generate_json(
+            retry_prompt, system_prompt=_STAGE2_SYSTEM_PROMPT
+        )
+        if llm_result_retry is not None:
+            llm_result = llm_result_retry
+            narratives_data = llm_result.get("narratives", [])
 
     # Deactivate old narratives that no longer have fresh signals
     await _deactivate_stale_narratives(db)
 
     # Store new narratives and ideas
-    narratives_data = llm_result.get("narratives", [])
     logger.info(f"[STAGE 2] LLM detected {len(narratives_data)} narratives")
     narratives_created = 0
     ideas_created = 0
 
     for n_data in narratives_data:
         try:
-            narrative = Narrative(
-                title=n_data.get("title", "Untitled Narrative"),
-                summary=n_data.get("summary", ""),
-                confidence=n_data.get("confidence", "low"),
-                confidence_reasoning=n_data.get("confidence_reasoning", ""),
-                is_active=True,
-                rank=n_data.get("rank"),
-                tags=n_data.get("tags", []),
-                key_evidence=n_data.get("key_evidence", []),
-                supporting_source_names=n_data.get("supporting_sources", []),
-                last_detected_at=now,
+            title = (n_data.get("title") or "Untitled Narrative").strip()
+            # Upsert-ish behavior: if a narrative with same title already exists,
+            # update it and replace its child rows (ideas, narrative_sources).
+            existing_result = await db.execute(
+                select(Narrative)
+                .where(Narrative.title.ilike(title))
+                .order_by(Narrative.last_detected_at.desc())
+                .limit(1)
             )
-            db.add(narrative)
-            await db.flush()
+            narrative = existing_result.scalar_one_or_none()
+            if narrative:
+                narrative.title = title
+                narrative.summary = n_data.get("summary", "") or ""
+                narrative.confidence = n_data.get("confidence", "low") or "low"
+                narrative.confidence_reasoning = n_data.get("confidence_reasoning", "") or ""
+                narrative.is_active = True
+                narrative.rank = n_data.get("rank")
+                narrative.tags = n_data.get("tags", []) or []
+                narrative.key_evidence = n_data.get("key_evidence", []) or []
+                narrative.supporting_source_names = n_data.get("supporting_sources", []) or []
+                narrative.last_detected_at = now
+                # Replace children
+                narrative.ideas.clear()
+                narrative.narrative_sources.clear()
+                await db.flush()
+            else:
+                narrative = Narrative(
+                    title=title,
+                    summary=n_data.get("summary", "") or "",
+                    confidence=n_data.get("confidence", "low") or "low",
+                    confidence_reasoning=n_data.get("confidence_reasoning", "") or "",
+                    is_active=True,
+                    rank=n_data.get("rank"),
+                    tags=n_data.get("tags", []) or [],
+                    key_evidence=n_data.get("key_evidence", []) or [],
+                    supporting_source_names=n_data.get("supporting_sources", []) or [],
+                    last_detected_at=now,
+                )
+                db.add(narrative)
+                await db.flush()
             narratives_created += 1
             logger.info(
                 f"[STAGE 2]   Narrative #{narratives_created}: \"{narrative.title}\" "
                 f"(confidence={narrative.confidence}, tags={narrative.tags})"
             )
 
-            # Create narrative_sources links
-            for src_name in n_data.get("supporting_sources", []):
-                ds_id = source_id_map.get(src_name)
-                if ds_id:
-                    # Count signals from this source for this narrative
-                    src_signal_count = len(source_signals.get(src_name, []))
-                    ns = NarrativeSource(
-                        narrative_id=narrative.id,
-                        data_source_id=ds_id,
-                        signal_count=src_signal_count,
+            # --- Traceability: link narrative -> signals (ids) -> content URLs ---
+            # Prefer explicit IDs from the model. Fall back to IDs referenced in key_evidence objects.
+            supporting_ids_raw = n_data.get("supporting_signal_ids") or []
+            supporting_ids: list[int] = []
+            for x in supporting_ids_raw:
+                try:
+                    supporting_ids.append(int(x))
+                except Exception:
+                    continue
+
+            if not supporting_ids:
+                for ev in n_data.get("key_evidence", []) or []:
+                    if isinstance(ev, dict) and "signal_id" in ev:
+                        try:
+                            supporting_ids.append(int(ev["signal_id"]))
+                        except Exception:
+                            pass
+
+            # Keep only signals that were part of this synthesis window
+            valid_signal_ids = [sid for sid in supporting_ids if sid in signal_to_source_id]
+            if valid_signal_ids:
+                # Compute narrative_sources from linked signals (not from LLM source strings)
+                ds_counts: dict[int, int] = {}
+                for sid in valid_signal_ids:
+                    ds_id = signal_to_source_id.get(sid)
+                    if ds_id:
+                        ds_counts[ds_id] = ds_counts.get(ds_id, 0) + 1
+                for ds_id, cnt in ds_counts.items():
+                    db.add(NarrativeSource(narrative_id=narrative.id, data_source_id=ds_id, signal_count=cnt))
+
+                # Replace existing links for this narrative (if any) and store new links.
+                # If migrations haven't been applied yet, don't fail the whole synthesis run.
+                try:
+                    await db.execute(
+                        sa.delete(NarrativeSignalLink).where(
+                            NarrativeSignalLink.narrative_id == narrative.id
+                        )
                     )
-                    db.add(ns)
+                    for sid in valid_signal_ids:
+                        db.add(NarrativeSignalLink(narrative_id=narrative.id, signal_id=sid))
+                except Exception as e:
+                    logger.warning(
+                        f"[STAGE 2] Could not store narrative-signal links (run migrations?): {e}"
+                    )
+
+                # Store supporting_source_names deterministically from linked signals
+                narrative.supporting_source_names = sorted(
+                    {signal_to_source_name[sid] for sid in valid_signal_ids if sid in signal_to_source_name}
+                )
+
+                # Store structured key evidence with URLs where possible
+                structured_ev: list[dict] = []
+                for ev in n_data.get("key_evidence", []) or []:
+                    if isinstance(ev, dict):
+                        sid = ev.get("signal_id")
+                        try:
+                            sid_int = int(sid) if sid is not None else None
+                        except Exception:
+                            sid_int = None
+                        structured_ev.append(
+                            {
+                                "signal_id": sid_int,
+                                "signal_title": signal_to_title.get(sid_int, ev.get("signal_title")) if sid_int else ev.get("signal_title"),
+                                "source_name": ev.get("source_name") or (signal_to_source_name.get(sid_int) if sid_int else None),
+                                "content_url": ev.get("content_url") or (signal_to_content_url.get(sid_int) if sid_int else None),
+                                "evidence": ev.get("evidence") or ev.get("quote") or ev.get("observation"),
+                            }
+                        )
+                    else:
+                        structured_ev.append({"evidence": str(ev)})
+                if structured_ev:
+                    narrative.key_evidence = structured_ev
+            else:
+                # Fallback behavior: keep whatever the model returned (legacy schema)
+                narrative.supporting_source_names = n_data.get("supporting_sources", []) or []
+                narrative.key_evidence = n_data.get("key_evidence", []) or []
 
             # Create ideas
             idea_list = n_data.get("product_ideas", [])[:5]
@@ -249,6 +283,7 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
                     why_solana=idea_data.get("why_solana", ""),
                     scale_potential=idea_data.get("scale_potential", ""),
                     market_signals=idea_data.get("market_signals", ""),
+                    # Keep legacy titles for API compatibility; IDs are stored at narrative level.
                     supporting_signals=idea_data.get("supporting_signals", []),
                 )
                 db.add(idea)

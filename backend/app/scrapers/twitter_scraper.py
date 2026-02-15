@@ -4,7 +4,6 @@ Fetches latest tweets from verified Solana KOLs.
 Rate limited to 5 requests/second (free tier).
 """
 
-import asyncio
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.models.data_source import DataSource
 from app.models.scraped_content import ScrapedContent
-from app.scrapers.rate_limiter import scrapebatcher_limiter
+from app.scrapers.rate_limiter import scrapebadger_limiter
 from app.utils.helpers import build_tweet_url, content_hash, clean_text, utcnow
 from app.utils.logger import logger
 
@@ -34,6 +33,8 @@ class TweetResult:
     text: str
     full_text: str
     tweet_url: str
+    # Full tweet payload from the API (see data/tweets_demo.json)
+    raw: dict = field(default_factory=dict)
     created_at: str | None = None
     lang: str | None = None
     # Engagement metrics
@@ -59,6 +60,10 @@ class TwitterScrapeCycleResult:
     tweets_fetched: int = 0
     new_content_stored: int = 0
     duplicates_skipped: int = 0
+    # Stage 1 is run at the job level (always before Stage 2)
+    # so we don't accidentally run Stage 2 without fresh signals.
+    signals_extracted: int = 0
+    new_content_ids: list[int] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
 
@@ -109,9 +114,13 @@ async def ensure_twitter_sources_exist(
 
 async def run_twitter_scrape_cycle(db: AsyncSession) -> TwitterScrapeCycleResult:
     """
-    Fetch latest tweet from each KOL via ScrapeBatcher API.
+    Fetch latest tweet from each KOL via ScrapeBadger API.
 
-    Respects 5 req/sec rate limit using token bucket.
+    Per-KOL flow: fetch tweets → store any new tweets as ScrapedContent (pending).
+    Stage 1 analysis is intentionally NOT run here; it is executed by the
+    scheduled job right before Stage 2 synthesis to guarantee ordering:
+      Stage 1 (signals) → Stage 2 (narratives).
+    Respects ScrapeBadger RPM rate limit (configurable via SCRAPEBADGER_RPM).
     """
     result = TwitterScrapeCycleResult()
     kols = load_kols()
@@ -127,64 +136,75 @@ async def run_twitter_scrape_cycle(db: AsyncSession) -> TwitterScrapeCycleResult
 
     source_map = await ensure_twitter_sources_exist(db, kols)
 
-    logger.info(f"[TWITTER] Fetching latest tweets from {len(kols)} KOLs (rate limit: 5 req/sec)")
+    logger.info(
+        f"[TWITTER] Fetching latest tweets from {len(kols)} KOLs "
+        f"(rate limit: {settings.SCRAPEBADGER_RPM} req/min)"
+    )
 
     async with httpx.AsyncClient(timeout=settings.REQUEST_TIMEOUT) as client:
-        # Process KOLs with rate limiting
-        tweet_results: list[TweetResult | None] = []
         for idx, username in enumerate(kols):
-            await scrapebatcher_limiter.acquire()
+            # ── Rate limit before each API call ──
+            await scrapebadger_limiter.acquire()
             logger.info(f"[TWITTER] [{idx + 1}/{len(kols)}] Fetching @{username}")
+
             try:
-                tweet = await _fetch_kol_tweet(client, username)
-                tweet_results.append(tweet)
-                if tweet:
-                    rt_tag = " [RT]" if tweet.is_retweet else ""
-                    logger.info(
-                        f"[TWITTER]   Got tweet{rt_tag} ({tweet.favorite_count} likes, "
-                        f"{tweet.view_count or '?'} views): {tweet.full_text[:80]}..."
-                    )
-                else:
-                    logger.info(f"[TWITTER]   No tweet data returned")
+                tweets = await _fetch_kol_tweets(
+                    client, username, limit=settings.TWITTER_TWEETS_PER_KOL
+                )
             except Exception as e:
                 logger.error(f"[TWITTER]   FAILED @{username}: {e}")
-                tweet_results.append(None)
-
-        # Store results
-        for tweet in tweet_results:
-            if tweet is None:
+                result.errors.append(f"@{username}: {e}")
                 continue
 
-            result.tweets_fetched += 1
-            ds = source_map.get(tweet.username)
+            if not tweets:
+                logger.info(f"[TWITTER]   No tweet data returned")
+                continue
+
+            result.tweets_fetched += len(tweets)
+            ds = source_map.get(username)
             if not ds:
                 continue
 
-            stored = await _store_tweet_if_new(db, ds, tweet)
-            if stored:
+            # ── Store tweets (each tweet is its own ScrapedContent) ──
+            stored_any = False
+            for t in tweets:
+                rt_tag = " [RT]" if t.is_retweet else ""
+                logger.info(
+                    f"[TWITTER]   Got tweet{rt_tag} ({t.favorite_count} likes, "
+                    f"{t.view_count or '?'} views): {t.full_text[:80]}..."
+                )
+
+                stored_content = await _store_tweet_if_new(db, ds, t)
+                if stored_content is None:
+                    result.duplicates_skipped += 1
+                    continue
+
+                stored_any = True
                 result.new_content_stored += 1
-                logger.info(f"[TWITTER]   Stored new tweet from @{tweet.username}")
-            else:
-                result.duplicates_skipped += 1
+                result.new_content_ids.append(stored_content.id)
+
+            if not stored_any:
+                continue
 
             ds.last_scraped_at = utcnow()
-
-        await db.commit()
+            await db.commit()
 
     logger.info(
         f"Twitter scrape cycle complete: {result.tweets_fetched} fetched, "
         f"{result.new_content_stored} new, {result.duplicates_skipped} duplicates, "
-        f"{len(result.errors)} errors"
+        f"{result.signals_extracted} signals, {len(result.errors)} errors"
     )
     return result
 
 
-async def _fetch_kol_tweet(client: httpx.AsyncClient, username: str) -> TweetResult | None:
-    """Fetch the latest tweet for a single KOL via ScrapeBadger.
+async def _fetch_kol_tweets(
+    client: httpx.AsyncClient, username: str, limit: int = 1
+) -> list[TweetResult]:
+    """Fetch the latest tweets for a single KOL via ScrapeBadger.
 
     API returns {"data": [tweet1, tweet2, ...]} — an array of recent tweets.
-    We pick the most recent original (non-retweet) tweet, falling back to the
-    first tweet if all are retweets.
+    We prefer original (non-retweet) tweets; if none exist we fall back to
+    retweets. Returns up to `limit` items.
     """
     try:
         resp = await client.get(
@@ -201,80 +221,92 @@ async def _fetch_kol_tweet(client: httpx.AsyncClient, username: str) -> TweetRes
 
         if not tweets:
             logger.debug(f"No tweets returned for @{username}")
-            return None
+            return []
 
-        # Prefer the most recent original tweet (non-retweet)
-        tweet_data = None
-        for t in tweets:
-            if not t.get("is_retweet", False):
-                tweet_data = t
+        # Prefer original tweets, then fill with retweets if needed
+        originals = [t for t in tweets if not t.get("is_retweet", False)]
+        ordered = originals + [t for t in tweets if t.get("is_retweet", False)]
+
+        out: list[TweetResult] = []
+        seen_ids: set[str] = set()
+        for t in ordered:
+            if len(out) >= max(1, limit):
                 break
 
-        # Fall back to the first tweet if all are retweets
-        if tweet_data is None:
-            tweet_data = tweets[0]
+            tweet_id = str(t.get("id", ""))
+            if not tweet_id or tweet_id in seen_ids:
+                continue
 
-        tweet_id = str(tweet_data.get("id", ""))
-        text = tweet_data.get("text", "")
-        full_text = tweet_data.get("full_text", text)
+            text = t.get("text", "")
+            full_text = t.get("full_text", text)
+            if not full_text:
+                continue
 
-        if not tweet_id or not full_text:
-            logger.debug(f"No usable tweet data for @{username}")
-            return None
+            # Parse view_count (comes as string or None from API)
+            raw_views = t.get("view_count")
+            view_count = int(raw_views) if raw_views else None
 
-        # Parse view_count (comes as string or None from API)
-        raw_views = tweet_data.get("view_count")
-        view_count = int(raw_views) if raw_views else None
+            # Keep the API payload shape as-is (see data/tweets_demo.json),
+            # but we also attach a cleaned version of full_text for analysis use.
+            raw_payload = dict(t)
+            raw_payload["full_text"] = full_text
 
-        return TweetResult(
-            username=tweet_data.get("username", username),
-            user_name=tweet_data.get("user_name", username),
-            tweet_id=tweet_id,
-            text=text,
-            full_text=clean_text(full_text),
-            tweet_url=build_tweet_url(username, tweet_id),
-            created_at=tweet_data.get("created_at"),
-            lang=tweet_data.get("lang"),
-            favorite_count=tweet_data.get("favorite_count", 0),
-            retweet_count=tweet_data.get("retweet_count", 0),
-            reply_count=tweet_data.get("reply_count", 0),
-            quote_count=tweet_data.get("quote_count", 0),
-            view_count=view_count,
-            bookmark_count=tweet_data.get("bookmark_count", 0),
-            is_retweet=tweet_data.get("is_retweet", False),
-            is_quote_status=tweet_data.get("is_quote_status", False),
-            user_mentions=[
-                {"username": m.get("username", ""), "name": m.get("name", "")}
-                for m in tweet_data.get("user_mentions", [])
-            ],
-            hashtags=tweet_data.get("hashtags", []),
-            media=[
-                {"type": m.get("type", ""), "url": m.get("url", "")}
-                for m in tweet_data.get("media", [])
-            ],
-            urls=[
-                {"url": u.get("expanded_url") or u.get("url", "")}
-                for u in tweet_data.get("urls", [])
-                if u.get("expanded_url") or u.get("url")
-            ],
-        )
+            out.append(
+                TweetResult(
+                    username=t.get("username", username),
+                    user_name=t.get("user_name", username),
+                    tweet_id=tweet_id,
+                    text=text,
+                    full_text=clean_text(full_text),
+                    tweet_url=build_tweet_url(username, tweet_id),
+                    raw=raw_payload,
+                    created_at=t.get("created_at"),
+                    lang=t.get("lang"),
+                    favorite_count=t.get("favorite_count", 0),
+                    retweet_count=t.get("retweet_count", 0),
+                    reply_count=t.get("reply_count", 0),
+                    quote_count=t.get("quote_count", 0),
+                    view_count=view_count,
+                    bookmark_count=t.get("bookmark_count", 0),
+                    is_retweet=t.get("is_retweet", False),
+                    is_quote_status=t.get("is_quote_status", False),
+                    user_mentions=[
+                        {"username": m.get("username", ""), "name": m.get("name", "")}
+                        for m in t.get("user_mentions", [])
+                    ],
+                    hashtags=t.get("hashtags", []),
+                    media=[
+                        {"type": m.get("type", ""), "url": m.get("url", "")}
+                        for m in t.get("media", [])
+                    ],
+                    urls=[
+                        {"url": u.get("expanded_url") or u.get("url", "")}
+                        for u in t.get("urls", [])
+                        if u.get("expanded_url") or u.get("url")
+                    ],
+                )
+            )
+            seen_ids.add(tweet_id)
+
+        return out
 
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 429:
             logger.warning(f"Rate limited fetching @{username} — will retry next cycle")
         else:
             logger.error(f"HTTP {e.response.status_code} fetching @{username}: {e}")
-        return None
+        return []
     except Exception as e:
         logger.error(f"Error fetching tweet for @{username}: {e}")
-        return None
+        return []
 
 
 async def _store_tweet_if_new(
     db: AsyncSession, ds: DataSource, tweet: TweetResult
-) -> bool:
-    """Store tweet content if not duplicate. Returns True if stored."""
-    c_hash = content_hash(tweet.full_text)
+) -> ScrapedContent | None:
+    """Store tweet content if not duplicate. Returns ScrapedContent if stored, None if duplicate."""
+    # Dedupe by tweet URL/id (edits shouldn't create new rows + re-analysis).
+    c_hash = content_hash(tweet.tweet_url)
 
     existing = await db.execute(
         select(ScrapedContent).where(
@@ -283,32 +315,11 @@ async def _store_tweet_if_new(
         )
     )
     if existing.scalar_one_or_none():
-        return False
+        return None
 
-    # Build rich content for LLM analysis with engagement context
-    mentions_str = ", ".join(
-        f"@{m['username']}" for m in tweet.user_mentions
-    ) if tweet.user_mentions else "none"
-
-    media_str = ", ".join(
-        f"{m['type']}: {m['url']}" for m in tweet.media
-    ) if tweet.media else "none"
-
-    view_str = f"{tweet.view_count:,}" if tweet.view_count else "N/A"
-
-    content_text = (
-        f"@{tweet.username} ({tweet.user_name}) tweeted:\n"
-        f"{tweet.full_text}\n\n"
-        f"--- Engagement ---\n"
-        f"Likes: {tweet.favorite_count} | Retweets: {tweet.retweet_count} | "
-        f"Replies: {tweet.reply_count} | Quotes: {tweet.quote_count} | "
-        f"Views: {view_str} | Bookmarks: {tweet.bookmark_count}\n"
-        f"Is retweet: {tweet.is_retweet} | Is quote: {tweet.is_quote_status}\n"
-        f"Mentions: {mentions_str}\n"
-        f"Media: {media_str}\n"
-        f"Posted: {tweet.created_at or 'unknown'}\n"
-        f"Tweet URL: {tweet.tweet_url}"
-    )
+    # Store tweet in the same JSON shape as the API (see data/tweets_demo.json).
+    # This makes downstream parsing consistent and preserves fields we may use later.
+    content_text = json.dumps(tweet.raw or {}, ensure_ascii=False, indent=2)
 
     sc = ScrapedContent(
         data_source_id=ds.id,
@@ -316,7 +327,9 @@ async def _store_tweet_if_new(
         title=f"@{tweet.username} — {tweet.full_text[:80]}",
         raw_content=content_text,
         content_hash=c_hash,
+        analysis_status="pending",
+        analysis_attempts=0,
     )
     db.add(sc)
     await db.flush()
-    return True
+    return sc

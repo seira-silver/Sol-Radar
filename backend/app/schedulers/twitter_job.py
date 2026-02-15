@@ -1,23 +1,29 @@
-"""Twitter scrape cron job — fetches KOL tweets then runs signal extraction."""
+"""Twitter scrape cron job — full pipeline: scrape → Stage 1 → Stage 2.
+
+Pipeline:
+  1. Scrape KOL tweets (per-KOL with rate limiting)
+  2. Stage 1: Signal extraction (inline per KOL after each fetch)
+  3. Stage 2: Narrative synthesis (aggregates all signals → narratives + ideas)
+"""
 
 import time
 
 from app.database import async_session_factory
 from app.scrapers.twitter_scraper import run_twitter_scrape_cycle, load_kols
-from app.analyzers.signal_extractor import run_signal_extraction
+from app.analyzers.narrative_synthesizer import run_narrative_synthesis
+from app.analyzers.signal_extractor import run_signal_extraction_for_source_type
 from app.utils.logger import logger
 
 
 async def twitter_scrape_job():
     """
-    Full Twitter scraping pipeline:
-    1. Fetch latest tweets from all Solana KOLs
-    2. Run Stage 1 signal extraction on new tweets
+    Full Twitter pipeline: scrape → Stage 1 (per-KOL) → Stage 2 (synthesis).
     """
     start_time = time.time()
     kols = load_kols()
     logger.info("=" * 60)
     logger.info("[JOB] STARTING TWITTER SCRAPE JOB")
+    logger.info("[JOB] Pipeline: Scrape → Stage 1 (signals) → Stage 2 (narratives + ideas)")
     logger.info(f"[JOB] KOLs to fetch: {len(kols)}")
     for handle in kols[:10]:
         logger.info(f"[JOB]   - @{handle}")
@@ -27,27 +33,32 @@ async def twitter_scrape_job():
 
     async with async_session_factory() as db:
         try:
-            # Step 1: Scrape Twitter KOLs
             scrape_result = await run_twitter_scrape_cycle(db)
             logger.info(
                 f"[JOB] Twitter scrape done: {scrape_result.tweets_fetched} fetched, "
                 f"{scrape_result.new_content_stored} new, "
-                f"{scrape_result.duplicates_skipped} duplicates"
+                f"{scrape_result.duplicates_skipped} duplicates, "
+                f"{scrape_result.signals_extracted} signals extracted"
             )
             if scrape_result.errors:
                 for err in scrape_result.errors:
                     logger.warning(f"[JOB]   Error: {err}")
 
-            # Step 2: Extract signals from new tweets
-            if scrape_result.new_content_stored > 0:
-                logger.info(f"[JOB] Running Stage 1 signal extraction on {scrape_result.new_content_stored} new tweets...")
-                signal_result = await run_signal_extraction(db)
-                logger.info(
-                    f"[JOB] Signal extraction done: {signal_result['signals_extracted']} signals "
-                    f"from {signal_result['content_processed']} items"
-                )
-            else:
-                logger.info("[JOB] No new tweets — skipping signal extraction")
+            # Stage 1 MUST always run before Stage 2.
+            logger.info("[JOB] Running Stage 1: Signal extraction (twitter)...")
+            stage1 = await run_signal_extraction_for_source_type(db, source_type="twitter")
+            logger.info(
+                f"[JOB] Stage 1 done: {stage1['content_processed']} items, "
+                f"{stage1['signals_extracted']} signals extracted"
+            )
+
+            # Stage 2: attempt synthesis (there may be signals from previous runs)
+            logger.info("[JOB] Running Stage 2: Narrative synthesis + idea generation...")
+            synthesis_result = await run_narrative_synthesis(db)
+            logger.info(
+                f"[JOB] Stage 2 done: {synthesis_result['narratives_created']} narratives, "
+                f"{synthesis_result['ideas_created']} ideas generated"
+            )
 
         except Exception as e:
             logger.error(f"[JOB] Twitter scrape job FAILED: {e}", exc_info=True)

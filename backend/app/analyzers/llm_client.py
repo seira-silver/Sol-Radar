@@ -2,13 +2,14 @@
 
 import json
 import asyncio
+import os
 from typing import Any
 
 from litellm import acompletion
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from app.config import get_settings
-from app.scrapers.rate_limiter import gemini_limiter
+from app.scrapers.rate_limiter import gemini_limiter, xai_limiter
 from app.utils.logger import logger
 
 settings = get_settings()
@@ -23,6 +24,22 @@ class LLMClient:
         self.total_completion_tokens = 0
         self.total_requests = 0
 
+    def _active_model(self) -> str:
+        # Allow changing model via env without restarting in dev.
+        return get_settings().LLM_MODEL
+
+    def _get_api_key(self, model: str) -> str:
+        s = get_settings()
+        if model.startswith("xai/"):
+            return (s.XAI_API_KEY or s.GROK_API_KEY or "").strip()
+        return (s.GEMINI_API_KEY or "").strip()
+
+    async def _acquire_limiter(self, model: str) -> None:
+        if model.startswith("xai/"):
+            await xai_limiter.acquire()
+        else:
+            await gemini_limiter.acquire()
+
     async def generate_json(self, prompt: str, system_prompt: str = "") -> dict[str, Any] | None:
         """
         Send a prompt to Gemini and parse the response as JSON.
@@ -34,8 +51,11 @@ class LLMClient:
         Returns:
             Parsed JSON dict, or None if parsing fails after retries.
         """
-        # Respect rate limits
-        await gemini_limiter.acquire()
+        model = self._active_model()
+        api_key = self._get_api_key(model)
+
+        # Respect rate limits (provider-specific)
+        await self._acquire_limiter(model)
 
         messages = []
         if system_prompt:
@@ -43,7 +63,7 @@ class LLMClient:
         messages.append({"role": "user", "content": prompt})
 
         try:
-            raw_text = await self._call_llm(messages)
+            raw_text = await self._call_llm(messages, model=model, api_key=api_key)
             if raw_text is None:
                 return None
 
@@ -59,8 +79,12 @@ class LLMClient:
                 "Fix it and return ONLY valid JSON, no explanation:\n\n"
                 f"{raw_text[:3000]}"
             )
-            await gemini_limiter.acquire()
-            fix_text = await self._call_llm([{"role": "user", "content": fix_prompt}])
+            await self._acquire_limiter(model)
+            fix_text = await self._call_llm(
+                [{"role": "user", "content": fix_prompt}],
+                model=model,
+                api_key=api_key,
+            )
             if fix_text:
                 parsed = self._parse_json_response(fix_text)
                 if parsed is not None:
@@ -80,15 +104,21 @@ class LLMClient:
         retry=retry_if_exception_type((Exception,)),
         reraise=True,
     )
-    async def _call_llm(self, messages: list[dict]) -> str | None:
+    async def _call_llm(self, messages: list[dict], model: str, api_key: str) -> str | None:
         """Call LiteLLM with retry logic."""
         try:
+            # LiteLLM's xAI provider typically reads XAI_API_KEY from env.
+            if model.startswith("xai/") and api_key:
+                os.environ["XAI_API_KEY"] = api_key
+
             response = await acompletion(
-                model=self.model,
+                model=model,
                 messages=messages,
-                api_key=settings.GEMINI_API_KEY,
+                api_key=api_key or None,
                 temperature=0.3,
                 max_tokens=8192,
+                # Hint to providers that support it to return strict JSON
+                response_format={"type": "json_object"},
             )
 
             # Track usage
@@ -141,6 +171,7 @@ class LLMClient:
             "total_prompt_tokens": self.total_prompt_tokens,
             "total_completion_tokens": self.total_completion_tokens,
             "gemini_requests_used": gemini_limiter.total_requests,
+            "xai_requests_used": xai_limiter.total_requests,
         }
 
 

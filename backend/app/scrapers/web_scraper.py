@@ -415,6 +415,8 @@ async def _store_if_new(db: AsyncSession, ds: DataSource, sr: ScrapeResult) -> b
         title=sr.title,
         raw_content=sr.content,
         content_hash=sr.content_hash,
+        analysis_status="pending",
+        analysis_attempts=0,
     )
     db.add(sc)
     await db.flush()

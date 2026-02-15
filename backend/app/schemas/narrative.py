@@ -16,7 +16,8 @@ class NarrativeResponse(BaseModel):
     velocity_score: float
     rank: int | None
     tags: list[str]
-    key_evidence: list[str]
+    # Stored as JSONB; can be legacy list[str] or structured list[dict]
+    key_evidence: list[object]
     supporting_source_names: list[str]
     idea_count: int = 0
     created_at: datetime
@@ -54,6 +55,14 @@ class NarrativeSourceResponse(BaseModel):
     signal_count: int
 
 
+class SupportingSignalResponse(BaseModel):
+    signal_id: int
+    signal_title: str
+    content_url: str
+    data_source_name: str
+    data_source_url: str
+
+
 class NarrativeDetailResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -66,10 +75,11 @@ class NarrativeDetailResponse(BaseModel):
     velocity_score: float
     rank: int | None
     tags: list[str]
-    key_evidence: list[str]
+    key_evidence: list[object]
     supporting_source_names: list[str]
     ideas: list[IdeaInNarrative]
     sources: list[NarrativeSourceResponse]
+    supporting_signals: list[SupportingSignalResponse] = []
     created_at: datetime
     updated_at: datetime
     last_detected_at: datetime

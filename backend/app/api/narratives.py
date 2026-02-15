@@ -7,14 +7,18 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.narrative import Narrative, NarrativeSource
+from app.models.narrative_signal_link import NarrativeSignalLink
 from app.models.idea import Idea
 from app.models.data_source import DataSource
+from app.models.signal import Signal
+from app.models.scraped_content import ScrapedContent
 from app.schemas.narrative import (
     NarrativeResponse,
     NarrativeListResponse,
     NarrativeDetailResponse,
     IdeaInNarrative,
     NarrativeSourceResponse,
+    SupportingSignalResponse,
 )
 
 router = APIRouter(prefix="/narratives", tags=["narratives"])
@@ -130,6 +134,26 @@ async def get_narrative(
         for ns in narrative.narrative_sources
     ]
 
+    # Supporting signal links (tweet/article URLs)
+    sig_result = await db.execute(
+        select(Signal, ScrapedContent, DataSource)
+        .join(NarrativeSignalLink, NarrativeSignalLink.signal_id == Signal.id)
+        .join(ScrapedContent, Signal.scraped_content_id == ScrapedContent.id)
+        .join(DataSource, ScrapedContent.data_source_id == DataSource.id)
+        .where(NarrativeSignalLink.narrative_id == narrative_id)
+        .order_by(Signal.created_at.desc())
+    )
+    supporting_signals = [
+        SupportingSignalResponse(
+            signal_id=s.id,
+            signal_title=s.signal_title,
+            content_url=c.source_url,
+            data_source_name=ds.name,
+            data_source_url=ds.url,
+        )
+        for (s, c, ds) in sig_result.all()
+    ]
+
     return NarrativeDetailResponse(
         id=narrative.id,
         title=narrative.title,
@@ -144,6 +168,7 @@ async def get_narrative(
         supporting_source_names=narrative.supporting_source_names or [],
         ideas=ideas,
         sources=sources,
+        supporting_signals=supporting_signals,
         created_at=narrative.created_at,
         updated_at=narrative.updated_at,
         last_detected_at=narrative.last_detected_at,

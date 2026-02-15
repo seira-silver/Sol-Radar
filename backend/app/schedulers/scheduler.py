@@ -28,7 +28,7 @@ def init_scheduler() -> AsyncIOScheduler:
     )
     logger.info(f"Scheduled web scrape job: daily at {settings.WEB_SCRAPE_HOUR_UTC}:00 UTC")
 
-    # Twitter scraper — every N hours
+    # Twitter scraper — every N hours (default: 72h = 3 days)
     scheduler.add_job(
         twitter_scrape_job,
         trigger=IntervalTrigger(hours=settings.TWITTER_SCRAPE_INTERVAL_HOURS),

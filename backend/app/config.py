@@ -11,28 +11,41 @@ class Settings(BaseSettings):
     # API Keys
     SCRAPEBADGER_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
+    # xAI (Grok)
+    # LiteLLM expects `XAI_API_KEY` env var; we also accept `GROK_API_KEY`.
+    XAI_API_KEY: str = ""
+    GROK_API_KEY: str = ""
 
     # Environment
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
 
-    # Rate limits
-    RATE_LIMIT_SCRAPEBATCHER: int = 5  # requests per second
-    RATE_LIMIT_GEMINI_RPM: int = 15  # requests per minute
-    RATE_LIMIT_GEMINI_RPD: int = 1500  # requests per day
+    # Rate limits — adjust these when you upgrade tiers
+    SCRAPEBADGER_RPM: int = 5  # requests per minute (free tier = 5)
+    GEMINI_RPM: int = 15  # requests per minute (free tier = 15)
+    GEMINI_RPD: int = 1500  # requests per day (free tier = 1500)
+    # xAI defaults (conservative). Adjust based on your plan.
+    XAI_RPM: int = 60
+    XAI_RPD: int = 100000
 
     # LLM
-    LLM_MODEL: str = "gemini/gemini-2.0-flash"
+    # Default to Grok to avoid Gemini free-tier throttling.
+    LLM_MODEL: str = "xai/grok-4-1-fast-non-reasoning"
 
     # Scheduler
     WEB_SCRAPE_HOUR_UTC: int = 2  # 2 AM UTC
-    TWITTER_SCRAPE_INTERVAL_HOURS: int = 4
+    # Twitter scrape is expensive (ScrapeBadger credits). Default: every 3 days.
+    TWITTER_SCRAPE_INTERVAL_HOURS: int = 72
     NARRATIVE_SYNTHESIS_INTERVAL_DAYS: int = 14
 
     # Scraping
     SCRAPE_DELAY_SECONDS: float = 2.0  # delay between requests to same domain
     MAX_RETRIES: int = 3
     REQUEST_TIMEOUT: int = 30
+
+    # Twitter scraping behavior
+    # How many recent tweets to store per KOL per scrape cycle (prefers originals).
+    TWITTER_TWEETS_PER_KOL: int = 3
 
     # Narrative lifecycle
     NARRATIVE_INACTIVE_AFTER_DAYS: int = 7
