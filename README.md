@@ -28,6 +28,7 @@ Sol Radar is an automated intelligence tool that continuously scrapes, analyzes,
 - [API Endpoints](#api-endpoints)
 - [Scheduler Jobs](#scheduler-jobs)
 - [Project Structure](#project-structure)
+- [Seira AI Agent](#seira-ai-agent)
 - [License](#license)
 
 ---
@@ -360,6 +361,7 @@ All endpoints are under `/api/v1`.
 | `GET` | `/ideas` | List product ideas |
 | `GET` | `/hackathons` | Ideas from high-velocity or hackathon narratives |
 | `GET` | `/stats` | Dashboard statistics |
+| `POST` | `/chat` | Chat with Seira — SSE streaming response |
 
 All list endpoints support `limit` and `offset` query parameters for pagination.
 
@@ -406,6 +408,36 @@ narration/
 │   └── verified_solana_kols.json  # Tracked X/Twitter KOL handles
 └── README.md
 ```
+
+---
+
+## Seira AI Agent
+
+Sol Radar includes **Seira**, a built-in AI research analyst powered by Grok. Seira has two interaction modes:
+
+### Human-to-AI Chat (UI)
+
+A floating chat interface is available on every page of the dashboard (bottom-right corner). Users can:
+
+- Ask Seira about active narratives, signals, and product ideas
+- Paste a URL for Seira to scrape, analyze, and relate to current Solana intelligence
+- Generate and validate product ideas with PMF reasoning grounded in real signals
+- Get early alpha backed by cross-source evidence from Sol Radar's database
+
+Seira cites specific narrative titles, signal evidence, and confidence levels from the live database in every response. Chat history persists in the browser via localStorage.
+
+### Agent-to-Agent Communication
+
+External AI agents can interact with Sol Radar programmatically via the REST API and the Seira chat endpoint. A machine-readable capability spec is published at:
+
+> **SKILL.md:** [https://sol-radar.vercel.app/SKILL.md](https://sol-radar.vercel.app/SKILL.md)
+
+The SKILL.md documents all available API endpoints, request/response schemas, the SSE streaming chat protocol, data models, and example usage patterns. Agents can use it to:
+
+- Fetch the latest Solana narratives and signals (`GET /api/v1/narratives`, `GET /api/v1/signals`)
+- Validate product ideas against current narratives via Seira (`POST /api/v1/chat`)
+- Monitor ecosystem health and signal volume (`GET /api/v1/stats`)
+- Analyze external URLs in the context of current Solana intelligence
 
 ---
 

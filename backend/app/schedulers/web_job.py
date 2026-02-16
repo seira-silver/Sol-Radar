@@ -1,9 +1,10 @@
-"""Web scrape cron job — full pipeline: scrape → Stage 1 → Stage 2.
+"""Web scrape cron job — full pipeline: scrape → Stage 1 → Stage 2 → backfill.
 
 Pipeline:
   1. Scrape all configured web sources
   2. Stage 1: Signal extraction on new content
   3. Stage 2: Narrative synthesis (aggregates all signals → narratives + ideas)
+  4. Idea backfill: top up any narratives that still have < 3 ideas
 """
 
 import time
@@ -12,6 +13,7 @@ from app.database import async_session_factory
 from app.scrapers.web_scraper import run_web_scrape_cycle, WEB_SOURCES
 from app.analyzers.signal_extractor import run_signal_extraction
 from app.analyzers.narrative_synthesizer import run_narrative_synthesis
+from app.analyzers.idea_backfiller import run_idea_backfill
 from app.utils.logger import logger
 
 
@@ -58,6 +60,15 @@ async def web_scrape_job():
             logger.info(
                 f"[JOB] Stage 2 done: {synthesis_result['narratives_created']} narratives, "
                 f"{synthesis_result['ideas_created']} ideas generated"
+            )
+
+            # Step 4: Backfill ideas for any narratives that still have < 3
+            logger.info("[JOB] Running Step 4: Idea backfill for under-populated narratives...")
+            backfill_result = await run_idea_backfill(db)
+            await db.commit()
+            logger.info(
+                f"[JOB] Idea backfill done: {backfill_result['ideas_created']} new ideas "
+                f"across {backfill_result['narratives_processed']} narrative(s)"
             )
 
         except Exception as e:

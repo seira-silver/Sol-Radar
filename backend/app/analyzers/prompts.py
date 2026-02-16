@@ -18,6 +18,7 @@ _DATA_DIR = _PROJECT_ROOT / "data"
 _SOURCE_ANALYSIS_PATH = _DATA_DIR / "1_SOURCE_ANALYSIS_PROMPT.txt"
 _NARRATIVE_SYNTHESIS_PATH = _DATA_DIR / "2_NARRATIVE_SYNTHESIS_PROMPT.txt"
 _IDEA_BACKFILL_PATH = _DATA_DIR / "3_IDEA_BACKFILL_PROMPT.txt"
+_SEIRA_AGENT_PATH = _DATA_DIR / "4_SEIRA_AGENT_PROMPT.txt"
 
 
 @lru_cache(maxsize=8)
@@ -72,5 +73,18 @@ def get_idea_backfill_prompt() -> str:
         "Narrative: {narrative_title}\n"
         "Summary: {narrative_summary}\n"
         "Generate {ideas_needed} new product ideas. Do not duplicate: {existing_ideas}\n"
+    )
+
+
+def get_seira_agent_prompt() -> str:
+    """Seira AI agent system prompt — used for chat interactions."""
+    text = _read_text(_SEIRA_AGENT_PATH).strip()
+    if text:
+        return text
+    # Minimal fallback
+    return (
+        "You are Seira, Sol Radar's AI research analyst for the Solana ecosystem.\n"
+        "Use markdown formatting. Cite narratives and signals from context.\n\n"
+        "{context}\n"
     )
 

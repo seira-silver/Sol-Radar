@@ -8,6 +8,7 @@ from app.api.hackathons import router as hackathons_router
 from app.api.landing import router as landing_router
 from app.api.signals import router as signals_router
 from app.api.stats import router as stats_router
+from app.api.chat import router as chat_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -17,3 +18,4 @@ api_router.include_router(hackathons_router)
 api_router.include_router(landing_router)
 api_router.include_router(signals_router)
 api_router.include_router(stats_router)
+api_router.include_router(chat_router)

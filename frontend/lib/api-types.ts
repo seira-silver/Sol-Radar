@@ -91,3 +91,13 @@ export interface LandingResponse {
   narratives: NarrativeListResponse & { narratives: (Narrative & { ideas: Idea[] })[] }
 }
 
+export interface ChatMessage {
+  role: "user" | "assistant"
+  content: string
+}
+
+export interface ChatRequest {
+  messages: ChatMessage[]
+  url?: string | null
+}
+

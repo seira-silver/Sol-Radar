@@ -61,3 +61,33 @@ export async function apiGet<T>(
   return (await res.json()) as T
 }
 
+export async function apiPostStream(
+  path: string,
+  body: unknown,
+  opts?: { signal?: AbortSignal }
+): Promise<Response> {
+  const url = buildUrl(path)
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+    },
+    body: JSON.stringify(body),
+    signal: opts?.signal,
+    cache: "no-store",
+  })
+
+  if (!res.ok) {
+    let errorBody: unknown = undefined
+    try {
+      errorBody = await res.json()
+    } catch {
+      /* ignore */
+    }
+    throw new HttpError(`POST ${path} failed (${res.status})`, res.status, errorBody)
+  }
+
+  return res
+}
+
