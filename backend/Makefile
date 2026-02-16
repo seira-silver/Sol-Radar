@@ -31,10 +31,10 @@ start:
 	pm2 start pm2.config.js
 
 restart:
-	pm2 restart jollofboard
+	pm2 restart sol-read
 
 stop:
-	pm2 stop jollofboard
+	pm2 stop sol-read
 
 # Run a script from backend/scripts/ interactively
 # Usage: make run-script  (will prompt for script name)
