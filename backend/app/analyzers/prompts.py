@@ -17,6 +17,7 @@ _DATA_DIR = _PROJECT_ROOT / "data"
 
 _SOURCE_ANALYSIS_PATH = _DATA_DIR / "1_SOURCE_ANALYSIS_PROMPT.txt"
 _NARRATIVE_SYNTHESIS_PATH = _DATA_DIR / "2_NARRATIVE_SYNTHESIS_PROMPT.txt"
+_IDEA_BACKFILL_PATH = _DATA_DIR / "3_IDEA_BACKFILL_PROMPT.txt"
 
 
 @lru_cache(maxsize=8)
@@ -57,5 +58,19 @@ def get_narrative_synthesis_prompt() -> str:
         "Return ONLY valid JSON.\n\n"
         "Signals ({total_sources} sources) {start_date} to {end_date}:\n"
         "{all_signal_reports}\n"
+    )
+
+
+def get_idea_backfill_prompt() -> str:
+    """Idea backfill prompt template — used to top-up narratives with < 3 ideas."""
+    text = _read_text(_IDEA_BACKFILL_PATH).strip()
+    if text:
+        return text
+    # Minimal fallback
+    return (
+        "Return ONLY valid JSON.\n\n"
+        "Narrative: {narrative_title}\n"
+        "Summary: {narrative_summary}\n"
+        "Generate {ideas_needed} new product ideas. Do not duplicate: {existing_ideas}\n"
     )
 

@@ -1,7 +1,7 @@
 """Stage 2: Narrative synthesis and idea generation using LLM.
 
-Aggregates signals from the past 14 days and synthesizes them into
-narratives with actionable product ideas.
+Aggregates recent signals (configurable lookback window) and synthesizes
+them into narratives with actionable product ideas.
 """
 
 import json
@@ -56,7 +56,7 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
     rows = result.all()
 
     if not rows:
-        logger.info("[STAGE 2] No signals found in past 14 days — skipping synthesis")
+        logger.info(f"[STAGE 2] No signals found in past {settings.NARRATIVE_SIGNAL_LOOKBACK_DAYS} days — skipping synthesis")
         return {"narratives_created": 0, "ideas_created": 0}
 
     # Build signal reports grouped by source
@@ -120,6 +120,7 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
         return {"narratives_created": 0, "ideas_created": 0}
 
     narratives_data = llm_result.get("narratives", [])
+
     # If we have signals but got no narratives, re-ask with a stronger constraint
     if not narratives_data and total_signal_count > 0:
         logger.warning("[STAGE 2] LLM returned 0 narratives; retrying with minimum narrative constraint")
@@ -127,6 +128,7 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
             prompt
             + "\n\nIMPORTANT:\n"
             + "- If there are any meaningful signals at all, you MUST output at least 1 narrative.\n"
+            + "- Each narrative MUST have between 3 and 5 product ideas.\n"
             + "- It is acceptable to mark confidence as 'low' and explain uncertainty.\n"
             + "- Do NOT fabricate evidence; only cite from the provided signal reports.\n"
         )
@@ -136,6 +138,23 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
         if llm_result_retry is not None:
             llm_result = llm_result_retry
             narratives_data = llm_result.get("narratives", [])
+
+    # Enforce minimum 3 ideas per narrative — drop any that don't meet the bar
+    MIN_IDEAS = 3
+    MAX_IDEAS = 5
+    valid_narratives = []
+    for n in narratives_data:
+        ideas = n.get("product_ideas", [])
+        if len(ideas) < MIN_IDEAS:
+            logger.warning(
+                f"[STAGE 2] Dropping narrative \"{n.get('title', 'Untitled')}\" — "
+                f"only {len(ideas)} idea(s), minimum is {MIN_IDEAS}"
+            )
+            continue
+        if len(ideas) > MAX_IDEAS:
+            n["product_ideas"] = ideas[:MAX_IDEAS]
+        valid_narratives.append(n)
+    narratives_data = valid_narratives
 
     # Deactivate old narratives that no longer have fresh signals
     await _deactivate_stale_narratives(db)
@@ -270,9 +289,9 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
                 narrative.supporting_source_names = n_data.get("supporting_sources", []) or []
                 narrative.key_evidence = n_data.get("key_evidence", []) or []
 
-            # Create ideas
-            idea_list = n_data.get("product_ideas", [])[:5]
-            logger.info(f"[STAGE 2]     Generating {len(idea_list)} ideas for this narrative")
+            # Create ideas (already validated: 3 <= len <= 5)
+            idea_list = n_data.get("product_ideas", [])
+            logger.info(f"[STAGE 2]     Storing {len(idea_list)} ideas for this narrative")
             for idea_data in idea_list:
                 idea = Idea(
                     narrative_id=narrative.id,

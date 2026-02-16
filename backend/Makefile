@@ -2,7 +2,7 @@
 PYTHON = ./venv/bin/python3
 PIP = ./venv/bin/pip
 
-.PHONY: setup install update migrations migrate deploy run stop
+.PHONY: setup install update migrations migrate deploy run stop run-script
 
 # Initial environment setup (Only run once)
 setup:
@@ -35,6 +35,12 @@ restart:
 
 stop:
 	pm2 stop jollofboard
+
+# Run a script from backend/scripts/ interactively
+# Usage: make run-script  (will prompt for script name)
+run-script:
+	@read -p "Script name (e.g. backfill_ideas): " script; \
+	$(PYTHON) -m scripts.$$script
 
 # The "One Command" Deploy for Production
 deploy: pull migrate restart
