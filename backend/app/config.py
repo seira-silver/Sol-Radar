@@ -33,9 +33,8 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "xai/grok-4-1-fast-non-reasoning"
 
     # Scheduler
-    WEB_SCRAPE_HOUR_UTC: int = 2  # 2 AM UTC
-    # Twitter scrape is expensive (ScrapeBadger credits). Default: every 3 days.
-    TWITTER_SCRAPE_INTERVAL_HOURS: int = 72
+    WEB_SCRAPE_INTERVAL_HOURS: int = 3  # every 3 hours
+    TWITTER_SCRAPE_INTERVAL_HOURS: int = 24  # every 24 hours
     NARRATIVE_SYNTHESIS_INTERVAL_DAYS: int = 1
     NARRATIVE_SIGNAL_LOOKBACK_DAYS: int = 7  # how many days of signals to consider during synthesis
 

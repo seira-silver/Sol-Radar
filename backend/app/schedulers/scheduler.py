@@ -17,16 +17,16 @@ scheduler = AsyncIOScheduler(timezone="UTC")
 def init_scheduler() -> AsyncIOScheduler:
     """Configure and return the scheduler with all jobs."""
 
-    # Web scraper — daily at configured hour UTC
+    # Web scraper — every N hours (default: 3h)
     scheduler.add_job(
         web_scrape_job,
-        trigger=CronTrigger(hour=settings.WEB_SCRAPE_HOUR_UTC, minute=0),
-        id="web_scrape_daily",
-        name="Daily Web Scraper",
+        trigger=IntervalTrigger(hours=settings.WEB_SCRAPE_INTERVAL_HOURS),
+        id="web_scrape_periodic",
+        name="Periodic Web Scraper",
         replace_existing=True,
         misfire_grace_time=3600,  # 1 hour grace
     )
-    logger.info(f"Scheduled web scrape job: daily at {settings.WEB_SCRAPE_HOUR_UTC}:00 UTC")
+    logger.info(f"Scheduled web scrape job: every {settings.WEB_SCRAPE_INTERVAL_HOURS} hours")
 
     # Twitter scraper — every N hours (default: 72h = 3 days)
     scheduler.add_job(

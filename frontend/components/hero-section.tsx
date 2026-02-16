@@ -103,7 +103,8 @@ export function HeroSection({ statsData }: { statsData: Stats | null }) {
               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75' />
               <span className='relative inline-flex h-2 w-2 rounded-full bg-primary' />
             </span>
-            Live - Updated {formatTime(statsData?.last_web_scrape_time)}
+            Live
+            {/* - Updated {formatTime(statsData?.last_web_scrape_time)} */}
           </div>
           <h1 className='text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl'>
             Solana Narrative
