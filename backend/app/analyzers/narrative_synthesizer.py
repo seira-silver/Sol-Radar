@@ -37,13 +37,13 @@ async def run_narrative_synthesis(db: AsyncSession) -> dict:
     """
     Run Stage 2 narrative synthesis.
 
-    1. Gather all signals from the past 14 days
+    1. Gather all signals from the past N days (NARRATIVE_SIGNAL_LOOKBACK_DAYS)
     2. Group signals by source
     3. Send to LLM for narrative detection and idea generation
     4. Store narratives and ideas in database
     """
     now = utcnow()
-    start_date = now - timedelta(days=settings.NARRATIVE_SYNTHESIS_INTERVAL_DAYS)
+    start_date = now - timedelta(days=settings.NARRATIVE_SIGNAL_LOOKBACK_DAYS)
 
     # Fetch signals with their content and source info
     result = await db.execute(

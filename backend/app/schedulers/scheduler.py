@@ -41,22 +41,19 @@ def init_scheduler() -> AsyncIOScheduler:
         f"Scheduled Twitter scrape job: every {settings.TWITTER_SCRAPE_INTERVAL_HOURS} hours"
     )
 
-    # Narrative synthesis — every 14 days at 3 AM UTC
+    # Narrative synthesis — daily at 3 AM UTC
     scheduler.add_job(
         _narrative_synthesis_job,
         trigger=CronTrigger(
-            day=f"*/{settings.NARRATIVE_SYNTHESIS_INTERVAL_DAYS}",
             hour=3,
             minute=0,
         ),
-        id="narrative_synthesis_periodic",
-        name="Fortnightly Narrative Synthesis",
+        id="narrative_synthesis_daily",
+        name="Daily Narrative Synthesis",
         replace_existing=True,
-        misfire_grace_time=7200,  # 2 hours grace
+        misfire_grace_time=3600,  # 1 hour grace
     )
-    logger.info(
-        f"Scheduled narrative synthesis: every {settings.NARRATIVE_SYNTHESIS_INTERVAL_DAYS} days at 3:00 UTC"
-    )
+    logger.info("Scheduled narrative synthesis: daily at 3:00 UTC")
 
     return scheduler
 

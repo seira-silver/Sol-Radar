@@ -36,7 +36,8 @@ class Settings(BaseSettings):
     WEB_SCRAPE_HOUR_UTC: int = 2  # 2 AM UTC
     # Twitter scrape is expensive (ScrapeBadger credits). Default: every 3 days.
     TWITTER_SCRAPE_INTERVAL_HOURS: int = 72
-    NARRATIVE_SYNTHESIS_INTERVAL_DAYS: int = 14
+    NARRATIVE_SYNTHESIS_INTERVAL_DAYS: int = 1
+    NARRATIVE_SIGNAL_LOOKBACK_DAYS: int = 7  # how many days of signals to consider during synthesis
 
     # Scraping
     SCRAPE_DELAY_SECONDS: float = 2.0  # delay between requests to same domain
