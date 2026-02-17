@@ -20,4 +20,5 @@ class LandingNarrativesResponse(BaseModel):
 class LandingResponse(BaseModel):
     stats: StatsResponse
     narratives: LandingNarrativesResponse
+    tags: list[str] = []
 

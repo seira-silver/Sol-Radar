@@ -89,6 +89,7 @@ export interface Stats {
 export interface LandingResponse {
   stats: Stats
   narratives: NarrativeListResponse & { narratives: (Narrative & { ideas: Idea[] })[] }
+  tags?: string[]
 }
 
 export interface ChatMessage {

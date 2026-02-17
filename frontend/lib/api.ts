@@ -76,13 +76,22 @@ function normalizeSignal(s: Signal): Signal {
 export async function getLanding(params: {
   narratives_limit: number
   narratives_offset: number
+  narratives_sort?: 'velocity' | 'recent'
+  narratives_tags?: string[]
   signal?: AbortSignal
 }): Promise<LandingResponse> {
+  const query: Record<string, string | number> = {
+    narratives_limit: params.narratives_limit,
+    narratives_offset: params.narratives_offset,
+  }
+  if (params.narratives_sort) {
+    query.narratives_sort = params.narratives_sort
+  }
+  if (params.narratives_tags && params.narratives_tags.length > 0) {
+    query.narratives_tags = params.narratives_tags.join(',')
+  }
   const data = await apiGet<LandingResponse>("/landing", {
-    query: {
-      narratives_limit: params.narratives_limit,
-      narratives_offset: params.narratives_offset,
-    },
+    query,
     signal: params.signal,
   })
 

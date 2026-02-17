@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -28,6 +28,7 @@ async def get_landing(
         None, description="Minimum confidence: high, medium, low"
     ),
     narratives_tags: str | None = Query(None, description="Comma-separated narrative tags to filter by"),
+    narratives_sort: str = Query("velocity", description="Sort: velocity or recent"),
     narratives_limit: int = Query(10, ge=1, le=50),
     narratives_offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
@@ -58,11 +59,11 @@ async def get_landing(
     n_total_result = await db.execute(n_count_query)
     n_total = n_total_result.scalar() or 0
 
-    n_query = (
-        n_query.order_by(Narrative.velocity_score.desc(), Narrative.created_at.desc())
-        .offset(narratives_offset)
-        .limit(narratives_limit)
-    )
+    if narratives_sort == "recent":
+        n_query = n_query.order_by(Narrative.created_at.desc(), Narrative.velocity_score.desc())
+    else:
+        n_query = n_query.order_by(Narrative.velocity_score.desc(), Narrative.created_at.desc())
+    n_query = n_query.offset(narratives_offset).limit(narratives_limit)
     n_result = await db.execute(n_query.options(selectinload(Narrative.ideas)))
     narratives = n_result.scalars().all()
 
@@ -97,5 +98,16 @@ async def get_landing(
     )
 
     stats = await get_stats(db=db)
-    return LandingResponse(stats=stats, narratives=narratives_resp)
+
+    # Fetch distinct tags from active narratives
+    tags_result = await db.execute(
+        text(
+            "SELECT DISTINCT jsonb_array_elements_text(tags) AS tag "
+            "FROM narratives WHERE is_active = true AND tags IS NOT NULL AND jsonb_array_length(tags) > 0 "
+            "ORDER BY tag"
+        )
+    )
+    all_tags = [row[0] for row in tags_result.fetchall() if row[0]]
+
+    return LandingResponse(stats=stats, narratives=narratives_resp, tags=all_tags)
 
