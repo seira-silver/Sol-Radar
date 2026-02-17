@@ -16,6 +16,18 @@ class Settings(BaseSettings):
     XAI_API_KEY: str = ""
     GROK_API_KEY: str = ""
 
+    # External data providers
+    # CoinGecko
+    COINGECKO_BASE_URL: str = "https://api.coingecko.com/api/v3"
+    # Some CoinGecko endpoints may require an API key; keep it optional.
+    COINGECKO_API_KEY: str = ""
+    # Dune Analytics
+    DUNE_API_KEY: str = ""
+    DUNE_BASE_URL: str = "https://api.dune.com/api/v1"
+    # GitHub
+    GITHUB_TOKEN: str = ""
+    GITHUB_BASE_URL: str = "https://api.github.com"
+
     # Environment
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
@@ -36,6 +48,10 @@ class Settings(BaseSettings):
     WEB_SCRAPE_INTERVAL_HOURS: int = 3  # every 3 hours
     TWITTER_SCRAPE_INTERVAL_HOURS: int = 24  # every 24 hours
     NARRATIVE_SYNTHESIS_INTERVAL_DAYS: int = 1
+    # New source-specific schedulers
+    COINGECKO_SCRAPE_INTERVAL_HOURS: int = 1  # trending coins can change quickly
+    DUNE_SCRAPE_INTERVAL_HOURS: int = 3  # on-chain trend queries are heavier
+    GITHUB_SCRAPE_INTERVAL_HOURS: int = 6  # repo activity does not need hourly polling
     NARRATIVE_SIGNAL_LOOKBACK_DAYS: int = 7  # how many days of signals to consider during synthesis
 
     # Scraping

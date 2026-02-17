@@ -183,7 +183,7 @@ export default function DocsPage() {
                   Reddit r/solana, Reddit Solana Search (JSON feeds). X/Twitter
                   via ScrapeBadger API from{' '}
                   <strong className='text-foreground'>
-                    59 verified Solana KOLs
+                    verified Solana KOLs
                   </strong>{' '}
                   including @solana, @toly, @heliuslabs, @phantom, @MagicEden,
                   @DriftProtocol, @marginfi, @PythNetwork, and more. Full list
@@ -192,6 +192,17 @@ export default function DocsPage() {
                     data/verified_solana_kols.json
                   </code>
                   .
+                </p>
+              </div>
+              <div>
+                <h3 className='mb-2 text-sm font-semibold text-foreground'>
+                  On-chain &amp; Market APIs
+                </h3>
+                <p className='text-muted-foreground text-sm'>
+                  CoinGecko API for trending coins and market momentum, Dune
+                  Analytics queries for on-chain program and wallet activity
+                  spikes, and GitHub API for recently updated Solana-related
+                  repositories and developer activity.
                 </p>
               </div>
             </div>

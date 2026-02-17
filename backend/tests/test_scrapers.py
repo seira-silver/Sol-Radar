@@ -10,6 +10,8 @@ from app.scrapers.url_resolver import (
     _is_followable,
 )
 from app.scrapers.rate_limiter import TokenBucketRateLimiter
+from app.scrapers.coingecko_scraper import _build_coin_summary
+from app.scrapers.github_scraper import _build_repo_summary
 from app.utils.helpers import content_hash, build_tweet_url, clean_text, resolve_url
 
 
@@ -194,3 +196,44 @@ class TestTokenBucketRateLimiter:
         await limiter.acquire()
         elapsed = time.monotonic() - start
         assert elapsed >= 0.4  # Should wait ~0.5s for a token at rate=2/s
+
+
+class TestCoinGeckoSummary:
+    def test_build_coin_summary_includes_name_and_symbol(self):
+        coin = {
+            "item": {
+                "name": "Solana",
+                "symbol": "SOL",
+                "market_cap_rank": 5,
+                "coingecko_rank": 3,
+                "price_btc": 0.00123,
+                "score": 42,
+                "id": "solana",
+            }
+        }
+        title, summary = _build_coin_summary(coin)
+        assert "Solana (SOL)" in title
+        assert "CoinGecko trending rank" in summary
+        assert "Market cap rank" in summary
+        assert "CoinGecko page:" in summary
+
+
+class TestGithubSummary:
+    def test_build_repo_summary_uses_full_name_and_pushed_at(self):
+        repo = {
+            "full_name": "solana-labs/solana",
+            "description": "Solana core protocol",
+            "stargazers_count": 1000,
+            "forks_count": 200,
+            "open_issues_count": 10,
+            "language": "Rust",
+            "pushed_at": "2026-02-17T00:00:00Z",
+            "html_url": "https://github.com/solana-labs/solana",
+            "topics": ["solana", "blockchain"],
+        }
+        readme_snippet = "Solana is a high-performance blockchain."
+        title, summary, key = _build_repo_summary(repo, readme_snippet)
+        assert "solana-labs/solana" in title
+        assert "Solana context" in summary
+        assert "Solana is a high-performance blockchain" in summary
+        assert "solana-labs/solana" in key

@@ -106,6 +106,9 @@ Returns: active narratives count, total ideas, velocity scores, active builders,
 | POST | `/api/v1/trigger/web-scrape` | Trigger web scrape cycle |
 | POST | `/api/v1/trigger/twitter-scrape` | Trigger Twitter scrape cycle |
 | POST | `/api/v1/trigger/synthesis` | Trigger narrative synthesis |
+| POST | `/api/v1/trigger/coingecko-scrape` | Trigger CoinGecko trending scrape cycle |
+| POST | `/api/v1/trigger/dune-scrape` | Trigger Dune on-chain trending scrape cycle |
+| POST | `/api/v1/trigger/github-scrape` | Trigger GitHub Solana repos scrape cycle |
 
 ### Health
 
@@ -117,10 +120,13 @@ Returns: active narratives count, total ideas, velocity scores, active builders,
 
 | Job | Schedule | Description |
 |-----|----------|-------------|
-| Web Scraper | Daily 2:00 UTC | Scrapes 10 web sources + deep links |
-| Twitter Scraper | Every 4 hours | Fetches latest tweets from 60 KOLs |
-| Narrative Synthesis | Every 14 days | Synthesizes signals into narratives + ideas |
-| Signal Extraction | After each scrape | Extracts signals from new content via LLM |
+| Web Scraper | Every 3 hours | Scrapes Solana ecosystem web sources + deep links |
+| Twitter Scraper | Every 24 hours | Fetches latest tweets from 59+ Solana KOLs |
+| Narrative Synthesis | Daily 3:00 UTC | Synthesizes signals into narratives + ideas |
+| Idea Backfill | Hourly | Tops up narratives with &lt; 3 ideas |
+| CoinGecko Trending | Every 1 hour | Fetches trending coins from CoinGecko API and stores market signals |
+| Dune On-chain Trending | Every 3 hours | Executes Dune queries for on-chain program/wallet activity spikes |
+| GitHub Solana Repos | Every 6 hours | Fetches recently updated Solana repos from GitHub API |
 
 ## Data Sources
 
@@ -130,6 +136,11 @@ Returns: active narratives count, total ideas, velocity scores, active builders,
 - Solana Homepage, Solana Compass (medium priority)
 - Arkham Research, Electric Capital (low priority, deep links)
 - CoinGecko 2025 Annual Report (PDF extraction)
+
+### On-chain & Market APIs
+- **CoinGecko (API):** Trending coins endpoint for market momentum around Solana-related assets.
+- **Dune Analytics (API):** Configurable queries for Solana program and wallet activity spikes.
+- **GitHub (API):** Solana-related repositories updated recently across Rust/TypeScript/JS/Python.
 
 ### Twitter KOLs (60)
 Verified Solana KOLs including @toly, @rajgokal, @heliuslabs, @phantom, @MagicEden, etc.

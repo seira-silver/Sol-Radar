@@ -10,26 +10,37 @@ Sol Radar is an automated intelligence tool that continuously scrapes, analyzes,
 
 ## Table of Contents
 
-- [How It Works](#how-it-works)
-- [Data Sources](#data-sources)
-- [Pipeline: From Raw Data to Narratives](#pipeline-from-raw-data-to-narratives)
-  - [Phase 1 — Scraping](#phase-1--scraping)
-  - [Phase 2 — Signal Extraction (Stage 1)](#phase-2--signal-extraction-stage-1)
-  - [Phase 3 — Narrative Synthesis (Stage 2)](#phase-3--narrative-synthesis-stage-2)
-  - [Velocity Scoring & Ranking](#velocity-scoring--ranking)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Backend Setup](#backend-setup)
-  - [Frontend Setup](#frontend-setup)
-  - [Running in Production](#running-in-production)
-- [Environment Variables](#environment-variables)
-- [API Endpoints](#api-endpoints)
-- [Scheduler Jobs](#scheduler-jobs)
-- [Project Structure](#project-structure)
-- [Seira AI Agent](#seira-ai-agent)
-- [License](#license)
+- [Sol Radar](#sol-radar)
+  - [Table of Contents](#table-of-contents)
+  - [How It Works](#how-it-works)
+  - [Data Sources](#data-sources)
+    - [Ecosystem \& News](#ecosystem--news)
+    - [Research \& Reports](#research--reports)
+    - [On-chain \& Market APIs](#on-chain--market-apis)
+    - [Community \& Social](#community--social)
+    - [X (Twitter) — Verified Solana KOLs](#x-twitter--verified-solana-kols)
+  - [Pipeline: From Raw Data to Narratives](#pipeline-from-raw-data-to-narratives)
+    - [Phase 1 — Scraping](#phase-1--scraping)
+    - [Phase 2 — Signal Extraction (Stage 1)](#phase-2--signal-extraction-stage-1)
+    - [Phase 3 — Narrative Synthesis (Stage 2)](#phase-3--narrative-synthesis-stage-2)
+    - [Velocity Scoring \& Ranking](#velocity-scoring--ranking)
+  - [Architecture](#architecture)
+  - [Tech Stack](#tech-stack)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Backend Setup](#backend-setup)
+    - [Frontend Setup](#frontend-setup)
+    - [Running in Production](#running-in-production)
+  - [Environment Variables](#environment-variables)
+    - [Backend (`backend/.env`)](#backend-backendenv)
+    - [Frontend (`frontend/.env`)](#frontend-frontendenv)
+  - [API Endpoints](#api-endpoints)
+  - [Scheduler Jobs](#scheduler-jobs)
+  - [Project Structure](#project-structure)
+  - [Seira AI Agent](#seira-ai-agent)
+    - [Human-to-AI Chat (UI)](#human-to-ai-chat-ui)
+    - [Agent-to-Agent Communication](#agent-to-agent-communication)
+  - [License](#license)
 
 ---
 
@@ -68,6 +79,14 @@ Sol Radar pulls from a diverse set of sources across the Solana ecosystem:
 | Electric Capital | https://www.electriccapital.com/ | Web (deep-linked) | Low |
 | CoinGecko 2025 Report | coingecko.com/reports/2025 (PDF) | PDF | Low |
 
+### On-chain & Market APIs
+
+| Source | What it tracks |
+|--------|----------------|
+| CoinGecko API | Trending coins and market momentum around Solana-related assets |
+| Dune Analytics API | On-chain program and wallet activity spikes |
+| GitHub API | Recently updated Solana-related repositories and developer activity |
+
 ### Community & Social
 
 | Source | URL | Type | Priority |
@@ -77,7 +96,7 @@ Sol Radar pulls from a diverse set of sources across the Solana ecosystem:
 
 ### X (Twitter) — Verified Solana KOLs
 
-Tweets are fetched via the [ScrapeBadger](https://scrapebadger.com) API from **59 verified Solana key opinion leaders**, including:
+Tweets are fetched via the [ScrapeBadger](https://scrapebadger.com) API from **verified Solana key opinion leaders**, including:
 
 - **Core Team:** @solana, @toly, @rajgokal, @solanalabs, @SolanaConf
 - **Infrastructure:** @heliuslabs, @Quicknode, @PythNetwork, @switchboardxyz, @GenesysGo
@@ -371,9 +390,13 @@ All list endpoints support `limit` and `offset` query parameters for pagination.
 
 | Job | Schedule | Pipeline |
 |-----|----------|----------|
-| **Web Scrape** | Daily at 2 AM UTC | Scrape all web sources → Extract signals → Synthesize narratives |
-| **Twitter Scrape** | Every 72 hours | Scrape KOL tweets → Extract signals → Synthesize narratives |
-| **Narrative Synthesis** | Every 14 days at 3 AM UTC | Re-synthesize all narratives from aggregated signals |
+| **Web Scrape** | Every 3 hours | Scrape ecosystem web sources → Extract signals → Synthesize narratives |
+| **Twitter Scrape** | Every 24 hours | Scrape KOL tweets → Extract signals → Synthesize narratives |
+| **Narrative Synthesis** | Daily at 3 AM UTC | Re-synthesize all narratives from aggregated signals |
+| **Idea Backfill** | Hourly | Top up narratives that have fewer than 3 ideas |
+| **CoinGecko Trending** | Every 1 hour | Fetch CoinGecko trending coins → Extract market signals → Synthesize narratives |
+| **Dune Trending** | Every 3 hours | Execute Dune queries → Extract on-chain signals → Synthesize narratives |
+| **GitHub Solana Repos** | Every 6 hours | Fetch updated Solana repos → Extract developer signals → Synthesize narratives |
 
 ---
 

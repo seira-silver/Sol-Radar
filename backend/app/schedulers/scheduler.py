@@ -7,6 +7,9 @@ from apscheduler.triggers.interval import IntervalTrigger
 from app.config import get_settings
 from app.schedulers.web_job import web_scrape_job
 from app.schedulers.twitter_job import twitter_scrape_job
+from app.schedulers.coingecko_job import coingecko_scrape_job
+from app.schedulers.dune_job import dune_scrape_job
+from app.schedulers.github_job import github_scrape_job
 from app.utils.logger import logger
 
 settings = get_settings()
@@ -65,6 +68,45 @@ def init_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=1800,  # 30 min grace
     )
     logger.info("Scheduled idea backfill: every 1 hour")
+
+    # CoinGecko trending — every N hours (default: 1h)
+    scheduler.add_job(
+        coingecko_scrape_job,
+        trigger=IntervalTrigger(hours=settings.COINGECKO_SCRAPE_INTERVAL_HOURS),
+        id="coingecko_trending_periodic",
+        name="CoinGecko Trending Scraper",
+        replace_existing=True,
+        misfire_grace_time=3600,  # 1 hour grace
+    )
+    logger.info(
+        f"Scheduled CoinGecko trending job: every {settings.COINGECKO_SCRAPE_INTERVAL_HOURS} hours"
+    )
+
+    # Dune on-chain trending — every N hours (default: 3h)
+    scheduler.add_job(
+        dune_scrape_job,
+        trigger=IntervalTrigger(hours=settings.DUNE_SCRAPE_INTERVAL_HOURS),
+        id="dune_trending_periodic",
+        name="Dune Trending Scraper",
+        replace_existing=True,
+        misfire_grace_time=3600,  # 1 hour grace
+    )
+    logger.info(
+        f"Scheduled Dune trending job: every {settings.DUNE_SCRAPE_INTERVAL_HOURS} hours"
+    )
+
+    # GitHub Solana repos — every N hours (default: 6h)
+    scheduler.add_job(
+        github_scrape_job,
+        trigger=IntervalTrigger(hours=settings.GITHUB_SCRAPE_INTERVAL_HOURS),
+        id="github_solana_periodic",
+        name="GitHub Solana Repos Scraper",
+        replace_existing=True,
+        misfire_grace_time=3600,  # 1 hour grace
+    )
+    logger.info(
+        f"Scheduled GitHub Solana job: every {settings.GITHUB_SCRAPE_INTERVAL_HOURS} hours"
+    )
 
     return scheduler
 

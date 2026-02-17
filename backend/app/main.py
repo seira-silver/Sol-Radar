@@ -90,3 +90,33 @@ async def trigger_synthesis():
     async with async_session_factory() as db:
         result = await run_narrative_synthesis(db)
     return {"status": "completed", "result": result}
+
+
+@app.post("/api/v1/trigger/coingecko-scrape", tags=["trigger"])
+async def trigger_coingecko_scrape():
+    """Manually trigger a CoinGecko trending scrape cycle (for development/testing)."""
+    from app.schedulers.coingecko_job import coingecko_scrape_job
+
+    logger.info("Manual CoinGecko scrape triggered via API")
+    await coingecko_scrape_job()
+    return {"status": "completed", "message": "CoinGecko scrape cycle finished"}
+
+
+@app.post("/api/v1/trigger/dune-scrape", tags=["trigger"])
+async def trigger_dune_scrape():
+    """Manually trigger a Dune on-chain trending scrape cycle (for development/testing)."""
+    from app.schedulers.dune_job import dune_scrape_job
+
+    logger.info("Manual Dune scrape triggered via API")
+    await dune_scrape_job()
+    return {"status": "completed", "message": "Dune scrape cycle finished"}
+
+
+@app.post("/api/v1/trigger/github-scrape", tags=["trigger"])
+async def trigger_github_scrape():
+    """Manually trigger a GitHub Solana repos scrape cycle (for development/testing)."""
+    from app.schedulers.github_job import github_scrape_job
+
+    logger.info("Manual GitHub scrape triggered via API")
+    await github_scrape_job()
+    return {"status": "completed", "message": "GitHub scrape cycle finished"}
