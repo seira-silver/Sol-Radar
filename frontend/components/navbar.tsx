@@ -1,6 +1,7 @@
 "use client"
 
-import { Radar, Activity, Trophy } from "lucide-react"
+import { Radar, Activity, Trophy, BookOpen } from "lucide-react"
+import Link from "next/link"
 
 export type TabType = "narratives" | "signals" | "hackathon"
 
@@ -34,7 +35,8 @@ export function Navbar({ activeTab, onTabChange }: NavbarProps) {
           </div>
         </div>
 
-        <nav className="flex items-center gap-1 rounded-lg bg-secondary/50 p-1 ring-1 ring-border/50">
+        <nav className="flex items-center gap-2">
+        <div className="flex items-center gap-1 rounded-lg bg-secondary/50 p-1 ring-1 ring-border/50">
           {tabs.map((tab) => {
             const Icon = tab.icon
             const isActive = activeTab === tab.id
@@ -56,6 +58,15 @@ export function Navbar({ activeTab, onTabChange }: NavbarProps) {
               </button>
             )
           })}
+        </div>
+          <Link
+            href="/docs"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            title="Documentation"
+          >
+            <BookOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">Docs</span>
+          </Link>
         </nav>
       </div>
     </header>
