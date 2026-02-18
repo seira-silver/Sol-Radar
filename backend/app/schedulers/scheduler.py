@@ -44,6 +44,19 @@ def init_scheduler() -> AsyncIOScheduler:
         f"Scheduled Twitter scrape job: every {settings.TWITTER_SCRAPE_INTERVAL_HOURS} hours"
     )
 
+  # CoinGecko trending — every N hours (default: 1h)
+    scheduler.add_job(
+        coingecko_scrape_job,
+        trigger=IntervalTrigger(hours=settings.COINGECKO_SCRAPE_INTERVAL_HOURS),
+        id="coingecko_trending_periodic",
+        name="CoinGecko Trending Scraper",
+        replace_existing=True,
+        misfire_grace_time=3600,  # 1 hour grace
+    )
+    logger.info(
+        f"Scheduled CoinGecko trending job: every {settings.COINGECKO_SCRAPE_INTERVAL_HOURS} hours"
+    )
+
     # Narrative synthesis — daily at 3 AM UTC
     scheduler.add_job(
         _narrative_synthesis_job,
@@ -68,19 +81,6 @@ def init_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=1800,  # 30 min grace
     )
     logger.info("Scheduled idea backfill: every 1 hour")
-
-    # CoinGecko trending — every N hours (default: 1h)
-    scheduler.add_job(
-        coingecko_scrape_job,
-        trigger=IntervalTrigger(hours=settings.COINGECKO_SCRAPE_INTERVAL_HOURS),
-        id="coingecko_trending_periodic",
-        name="CoinGecko Trending Scraper",
-        replace_existing=True,
-        misfire_grace_time=3600,  # 1 hour grace
-    )
-    logger.info(
-        f"Scheduled CoinGecko trending job: every {settings.COINGECKO_SCRAPE_INTERVAL_HOURS} hours"
-    )
 
     # Dune on-chain trending — every N hours (default: 3h)
     scheduler.add_job(
