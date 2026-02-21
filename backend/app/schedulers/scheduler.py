@@ -61,7 +61,7 @@ def init_scheduler() -> AsyncIOScheduler:
     scheduler.add_job(
         _narrative_synthesis_job,
         trigger=CronTrigger(
-            hour=3,
+            hour=8,
             minute=0,
         ),
         id="narrative_synthesis_daily",
@@ -74,7 +74,7 @@ def init_scheduler() -> AsyncIOScheduler:
     # Idea backfill — hourly, tops up narratives that have < 3 ideas
     scheduler.add_job(
         _idea_backfill_job,
-        trigger=IntervalTrigger(hours=1),
+        trigger=IntervalTrigger(hours=8),
         id="idea_backfill_hourly",
         name="Hourly Idea Backfill",
         replace_existing=True,

@@ -45,13 +45,13 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "xai/grok-4-1-fast-non-reasoning"
 
     # Scheduler
-    WEB_SCRAPE_INTERVAL_HOURS: int = 3  # every 3 hours
+    WEB_SCRAPE_INTERVAL_HOURS: int = 8  # every 3 hours
     TWITTER_SCRAPE_INTERVAL_HOURS: int = 24  # every 24 hours
     NARRATIVE_SYNTHESIS_INTERVAL_DAYS: int = 1
     # New source-specific schedulers
-    COINGECKO_SCRAPE_INTERVAL_HOURS: int = 1  # trending coins can change quickly
-    DUNE_SCRAPE_INTERVAL_HOURS: int = 3  # on-chain trend queries are heavier
-    GITHUB_SCRAPE_INTERVAL_HOURS: int = 6  # repo activity does not need hourly polling
+    COINGECKO_SCRAPE_INTERVAL_HOURS: int = 8  # trending coins can change quickly
+    DUNE_SCRAPE_INTERVAL_HOURS: int = 8  # on-chain trend queries are heavier
+    GITHUB_SCRAPE_INTERVAL_HOURS: int = 8  # repo activity does not need hourly polling
     NARRATIVE_SIGNAL_LOOKBACK_DAYS: int = 7  # how many days of signals to consider during synthesis
 
     # Scraping
